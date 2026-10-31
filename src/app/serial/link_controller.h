@@ -32,6 +32,9 @@ class LinkController : public QObject
 
     bool openLink(const LinkConfig &config);
     void closeLink();
+    // True while openLink() is still working (its waits pump the event loop,
+    // so reconnect timers can fire and must not re-enter).
+    bool isConnecting() const;
     bool writeData(const QByteArray &data, QString *error = nullptr);
     // Bytes accepted by writeData() not yet handed to the transport.
     qint64 bytesToWrite() const;
@@ -53,6 +56,12 @@ class LinkController : public QObject
     void pollRttLog();
 
   private:
+    struct OpenGuard
+    {
+        LinkController *owner;
+        ~OpenGuard() { owner->m_openInProgress = false; }
+    };
+
     void stopRttLogger();
 
     SerialController m_serial;
@@ -67,4 +76,5 @@ class LinkController : public QObject
     LinkConfig m_config;
     QString m_udpHost;
     QString m_error;
+    bool m_openInProgress = false;
 };

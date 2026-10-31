@@ -24,7 +24,12 @@ AppControl::SessionStatus WorkbenchPage::controlStatus() const
     AppControl::SessionStatus status;
     status.id = objectName();
     status.connected = m_link.isOpen();
-    status.serialConfig = currentLinkConfig().serial;
+    if (m_link.linkType() == LinkType::Rtt) {
+        status.serialConfig.portName = m_link.displayName();
+        status.serialConfig.baudRate = 0;
+    } else {
+        status.serialConfig = currentLinkConfig().serial;
+    }
     status.transport = linkTypeKey(m_link.linkType());
     status.receivedBytes = m_rxCount;
     status.transmittedBytes = m_txCount;
@@ -133,6 +138,16 @@ bool WorkbenchPage::controlConnectLink(const LinkConfig &config, QString *error)
         m_manualDisconnect = true;
         m_reconnectTimer.stop();
         m_link.closeLink();
+    }
+    if (config.type == LinkType::Rtt) {
+        // Probe is exclusive: take it over from any other session (Synex-style).
+        for (WorkbenchPage *other : openWorkbenchPages()) {
+            if (other != this && other->m_link.linkType() == LinkType::Rtt && other->m_link.isOpen()) {
+                other->m_manualDisconnect = true;
+                other->m_reconnectTimer.stop();
+                other->m_link.closeLink();
+            }
+        }
     }
     if (m_hostEdit) {
         m_hostEdit->setText(config.host.trimmed());

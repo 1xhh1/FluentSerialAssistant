@@ -10,15 +10,11 @@
 using namespace FluentQt;
 using namespace WorkbenchPagePrivate;
 
-namespace {
-
-QList<WorkbenchPage *> &openWorkbenchPages()
+QList<WorkbenchPage *> &WorkbenchPage::openWorkbenchPages()
 {
     static QList<WorkbenchPage *> pages;
     return pages;
 }
-
-} // namespace
 
 WorkbenchPage::WorkbenchPage(QWidget *parent, bool restoreSavedSession, bool allowAutoOpen)
     : AppPage(AppI18n::text("终端"), AppI18n::text("连接串口设备，查看收发记录，并执行文本或 HEX 数据发送。"), parent,

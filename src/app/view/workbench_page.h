@@ -442,6 +442,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void setControlsEnabledForConnection(bool connected);
     int maxRecordCount() const;
     static int savedMaxRecordCount();
+    static QList<WorkbenchPage *> &openWorkbenchPages();
 
     LinkController m_link;
     QList<SerialPortDescriptor> m_ports;

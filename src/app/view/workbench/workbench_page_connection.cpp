@@ -28,7 +28,7 @@ void WorkbenchPage::attemptReconnect()
         m_reconnectTimer.stop();
         return;
     }
-    if (m_link.isOpen()) {
+    if (m_link.isConnecting() || m_link.isOpen()) {
         m_reconnectTimer.stop();
         return;
     }
@@ -70,6 +70,17 @@ void WorkbenchPage::onConnectClicked()
         (config.host.trimmed().isEmpty() || config.port == 0)) {
         showWarning(AppI18n::text("连接参数无效"), AppI18n::text("请填写目标设备名称和正整数速率"));
         return;
+    }
+    if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() == QStringLiteral("rtt")) {
+        // The probe is exclusive: another session holding RTT would make this
+        // connect fail with no logs, so take the probe over Synex-style.
+        for (WorkbenchPage *other : openWorkbenchPages()) {
+            if (other != this && other->m_link.linkType() == LinkType::Rtt && other->m_link.isOpen()) {
+                other->m_manualDisconnect = true;
+                other->m_reconnectTimer.stop();
+                other->m_link.closeLink();
+            }
+        }
     }
     if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() != QStringLiteral("serial") &&
         m_linkTypeCombo->currentData().toString() != QStringLiteral("rtt") &&

@@ -30,6 +30,8 @@ QString linkTypeKey(LinkType type)
         return QStringLiteral("tcp-client");
     case LinkType::Udp:
         return QStringLiteral("udp");
+    case LinkType::Rtt:
+        return QStringLiteral("rtt");
     case LinkType::Serial:
         break;
     }
@@ -123,8 +125,20 @@ QString LinkController::errorString() const
 
 int LinkController::peerCount() const { return m_config.type == LinkType::TcpServer ? m_clients.size() : 0; }
 
+bool LinkController::isConnecting() const
+{
+    return m_openInProgress;
+}
+
 bool LinkController::openLink(const LinkConfig &config)
 {
+    // Re-entry guard: the waitFor* calls below pump the event loop, which can
+    // fire reconnect timers that would otherwise overwrite this open.
+    if (m_openInProgress) {
+        return false;
+    }
+    m_openInProgress = true;
+    const OpenGuard guard{this};
     closeLink();
     m_error.clear();
     m_config = config;
@@ -207,6 +221,7 @@ bool LinkController::openLink(const LinkConfig &config)
                 if (m_error.isEmpty()) {
                     m_error = QStringLiteral("RTT logger exited before connecting");
                 }
+                m_error += QStringLiteral("（探测口可能被其它会话或软件占用，请先断开它们）");
                 stopRttLogger();
                 return false;
             }

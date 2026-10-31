@@ -35,4 +35,3 @@ struct LinkConfig
 
 QString linkTypeKey(LinkType type);
 LinkType linkTypeFromKey(const QString &key);
-QString linkTypeLabel(LinkType type);
