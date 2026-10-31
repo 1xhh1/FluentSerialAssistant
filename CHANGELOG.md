@@ -4,6 +4,11 @@
 
 ## [未发布]
 
+### 变更
+
+- **新增“仪表台”视图（Synex 架构）**：终端右上角瓦片按钮切换。顶栏选择数据源（串口接收 / J-Link RTT），瓦片化布局：实时绘图（key=value 或纯数字行自动注册通道）、数据控制台、SWD 内存读写。串口与 RTT 数据流共用同一条解析管线。
+- **侧边栏精简**：J-Link 调试器卡片移入仪表台，侧边栏从 11 张卡片减到 10 张。
+
 ### 新增
 
 - **J-Link 调试器窗口**（侧边栏“J-Link 调试器”卡片）：移植自 Synex 的 HSS/RTT 能力——通过 J-Link Commander（JLink.exe）批处理模式驱动（DLL 直调在 V7.80 下会崩溃，实测确认），支持 SWD 连接（设备名/速率可配）、**内存读取 + 写入并自动回读校验**（HEX/ASCII 双栏显示）、halt/run、**RTT 通道终端**（JLinkRTTLogger 50ms 轮询，时间戳滚动）。DLL/可执行路径可配置，未安装时优雅降级。已在真实 J-Link OB-Mini Plus + Cortex-M4 上实测：CPUID 读取、SRAM 写入校验、halt/run 全部通过。

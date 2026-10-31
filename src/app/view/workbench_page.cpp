@@ -152,6 +152,16 @@ WorkbenchPage::~WorkbenchPage()
 
 void WorkbenchPage::reloadTerminalColors() { applyTerminalColorConfig(AppTerminal::loadColorConfig()); }
 
+void WorkbenchPage::toggleDashboardView()
+{
+    if (!m_centerStack || !m_dashboard) {
+        return;
+    }
+    // Dashboard page is index 1; entering it hides the terminal view.
+    const bool toDashboard = m_centerStack->currentIndex() != 1;
+    m_centerStack->setCurrentIndex(toDashboard ? 1 : 0);
+}
+
 void WorkbenchPage::publishSharedList(SharedList list) const
 {
     for (WorkbenchPage *page : openWorkbenchPages()) {

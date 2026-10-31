@@ -3142,6 +3142,42 @@ Installation log: %2</translation>
         <translation>Timestamp format</translation>
     </message>
     <message>
+        <source>数据源</source>
+        <translation>Data source</translation>
+    </message>
+    <message>
+        <source>返回终端</source>
+        <translation>Back to terminal</translation>
+    </message>
+    <message>
+        <source>实时绘图</source>
+        <translation>Live Plot</translation>
+    </message>
+    <message>
+        <source>数据控制台</source>
+        <translation>Data Console</translation>
+    </message>
+    <message>
+        <source>内存读写 (SWD)</source>
+        <translation>Memory R/W (SWD)</translation>
+    </message>
+    <message>
+        <source>正在从串口接收解析</source>
+        <translation>Parsing serial receive stream</translation>
+    </message>
+    <message>
+        <source>RTT 输出</source>
+        <translation>RTT output</translation>
+    </message>
+    <message>
+        <source>仪表台</source>
+        <translation>Dashboard</translation>
+    </message>
+    <message>
+        <source>RTT 记录器已退出</source>
+        <translation>RTT logger exited</translation>
+    </message>
+    <message>
         <source>时:分:秒</source>
         <translation>HH:mm:ss</translation>
     </message>

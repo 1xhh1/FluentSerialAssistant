@@ -37,6 +37,8 @@ class ProtocolTemplateWindow;
 class ConvertDialog;
 class AsciiTableDialog;
 class JLinkCommander;
+class QStackedWidget;
+class WorkbenchDashboard;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -73,6 +75,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
 
   signals:
     void settingsRequested();
+    // Emitted for every terminal record (bytes as captured; transmit marks TX).
+    void recordCaptured(const QByteArray &bytes, bool transmit);
 
   private:
     friend class AutoReplyTest;
@@ -87,7 +91,6 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     QWidget *createProtocolTemplateSection();
     QWidget *createSendSettingsSection();
     QWidget *createModbusSection();
-    QWidget *createDebuggerSection();
     QWidget *createPacketSection();
     QWidget *createMacroSection();
     QWidget *createScriptSection();
@@ -424,12 +427,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void refreshDataTableWindow();
     void showConvertDialog();
     void showAsciiTableDialog();
-    void readDebuggerMemory();
-    void writeDebuggerMemory();
-    void startDebuggerRtt();
-    void stopDebuggerRtt();
-    void pollRttOutput();
-    void updateDebuggerUi();
+    void toggleDashboardView();
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -586,22 +584,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     DataTableWindow *m_dataTableWindow = nullptr;
     ConvertDialog *m_convertDialog = nullptr;
     AsciiTableDialog *m_asciiTableDialog = nullptr;
-    JLinkCommander *m_jlink = nullptr;
-    QTimer *m_debuggerRttTimer = nullptr;
-    FluentQt::LineEdit *m_debuggerDeviceEdit = nullptr;
-    FluentQt::LineEdit *m_debuggerSpeedEdit = nullptr;
-    FluentQt::LineEdit *m_debuggerAddressEdit = nullptr;
-    FluentQt::LineEdit *m_debuggerSizeEdit = nullptr;
-    FluentQt::LineEdit *m_debuggerWriteEdit = nullptr;
-    FluentQt::LineEdit *m_debuggerRttChannelEdit = nullptr;
-    FluentQt::PrimaryPushButton *m_debuggerConnectButton = nullptr;
-    FluentQt::PushButton *m_debuggerReadButton = nullptr;
-    FluentQt::PushButton *m_debuggerWriteButton = nullptr;
-    FluentQt::PushButton *m_debuggerRttStartButton = nullptr;
-    FluentQt::PushButton *m_debuggerRttStopButton = nullptr;
-    FluentQt::CaptionLabel *m_debuggerStatusLabel = nullptr;
-    FluentQt::PlainTextEdit *m_debuggerMemoryView = nullptr;
-    FluentQt::PlainTextEdit *m_debuggerRttView = nullptr;
+    QStackedWidget *m_centerStack = nullptr;
+    WorkbenchDashboard *m_dashboard = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.

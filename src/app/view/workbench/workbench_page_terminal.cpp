@@ -560,6 +560,7 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
     m_pendingRecordIndexes.append(m_firstRecordIndex + m_records.size() - 1);
     writeAutoLogRecord(record);
     appendQuickPlotRecord(record);
+    emit recordCaptured(record.bytes, direction == RecordDirection::Tx);
     if (direction == RecordDirection::Rx) {
         updateModbusResponseStatus(data);
     }

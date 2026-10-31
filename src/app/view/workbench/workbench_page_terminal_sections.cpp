@@ -133,6 +133,10 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::setFluentToolTip(convertButton, AppI18n::text("转换计算器"));
     auto *asciiTableButton = new TransparentToolButton(icon(FluentIcon::Font), section);
     AppUi::setFluentToolTip(asciiTableButton, AppI18n::text("ASCII字符表"));
+    auto *dashboardButton = new TransparentToolButton(icon(FluentIcon::Tiles), section);
+    dashboardButton->setObjectName(QStringLiteral("dashboardToggleButton"));
+    dashboardButton->setAccessibleName(AppI18n::text("仪表台"));
+    AppUi::setFluentToolTip(dashboardButton, AppI18n::text("仪表台"));
     auto *themeButton = new TransparentToolButton(icon(FluentIcon::Constract), section);
     AppUi::setFluentToolTip(themeButton, AppI18n::text("切换主题"));
     auto *languageButton = new TransparentToolButton(icon(FluentIcon::Language), section);
@@ -151,7 +155,7 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::installFluentToolTip(m_receiveModeButton);
     auto *settingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
     AppUi::setFluentToolTip(settingsButton, AppI18n::text("设置"));
-    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton,
+    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, dashboardButton,
                                themeButton, languageButton, settingsButton}) {
         button->setProperty("terminalHeaderAction", true);
         button->setFixedSize(CompactControlHeight, CompactControlHeight);
@@ -161,10 +165,11 @@ QWidget *WorkbenchPage::createTerminalSection()
                            "min-height: 32px; max-height: 32px; padding: 0px; }");
         FluentStyleSheet::setCustomStyleSheet(button, buttonStyle, buttonStyle);
     }
-    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, themeButton,
+    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, dashboardButton, themeButton,
                                languageButton, settingsButton}) {
         actionLayout->addWidget(button);
     }
+    connect(dashboardButton, &TransparentToolButton::clicked, this, &WorkbenchPage::toggleDashboardView);
 
     m_terminalView = new TextBrowser(section);
     m_terminalView->setReadOnly(true);
