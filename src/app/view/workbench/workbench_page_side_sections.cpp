@@ -5,6 +5,7 @@
 #include "app/view/workbench/workbench_page_internal.h"
 
 #include <QtCore/QRegularExpression>
+#include <QtCore/QTimer>
 #include <QtGui/QRegularExpressionValidator>
 
 using namespace FluentQt;
@@ -187,6 +188,9 @@ QWidget *WorkbenchPage::createConnectionSection()
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
     connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
     connect(m_portEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    // Toggling row visibility changes the body height; ExpandSettingCard only
+    // re-measures on expand, so nudge it once the layout has settled.
+    QTimer::singleShot(0, section, [section]() { section->setExpanded(section->isExpanded()); });
     connect(m_rttSettingsButton, &TransparentToolButton::clicked, this, [this, refreshRttSummary]() {
         AppSettings settings;
         JLinkSettingsDialog::Settings current;
