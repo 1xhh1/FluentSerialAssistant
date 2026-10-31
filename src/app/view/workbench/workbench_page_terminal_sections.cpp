@@ -137,12 +137,22 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::setFluentToolTip(themeButton, AppI18n::text("切换主题"));
     auto *languageButton = new TransparentToolButton(icon(FluentIcon::Language), section);
     AppUi::setFluentToolTip(languageButton, AppI18n::text("切换语言"));
-    m_receiveModeButton = new TransparentToolButton(icon(FluentIcon::Font), section);
+    m_receiveModeButton = new TransparentToolButton(section);
+    m_receiveModeButton->setObjectName(QStringLiteral("receiveModeButton"));
+    m_receiveModeButton->setAccessibleName(AppI18n::text("切换接收显示模式"));
+    m_receiveModeButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    m_receiveModeButton->setText(AppI18n::text("文本"));
+    m_receiveModeButton->setFixedSize(64, CompactControlHeight);
+    const QString modeButtonStyle = QStringLiteral(
+        "QToolButton#receiveModeButton { min-width: 64px; max-width: 64px; min-height: 32px; max-height: 32px; "
+        "padding: 0px 6px; font-weight: 600; }");
+    FluentStyleSheet::setCustomStyleSheet(m_receiveModeButton, modeButtonStyle, modeButtonStyle);
+    actionLayout->addWidget(m_receiveModeButton);
     AppUi::installFluentToolTip(m_receiveModeButton);
     auto *settingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
     AppUi::setFluentToolTip(settingsButton, AppI18n::text("设置"));
     for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton,
-                               themeButton, languageButton, m_receiveModeButton, settingsButton}) {
+                               themeButton, languageButton, settingsButton}) {
         button->setProperty("terminalHeaderAction", true);
         button->setFixedSize(CompactControlHeight, CompactControlHeight);
         button->setIconSize(QSize(16, 16));
@@ -152,7 +162,7 @@ QWidget *WorkbenchPage::createTerminalSection()
         FluentStyleSheet::setCustomStyleSheet(button, buttonStyle, buttonStyle);
     }
     for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, themeButton,
-                               languageButton, m_receiveModeButton, settingsButton}) {
+                               languageButton, settingsButton}) {
         actionLayout->addWidget(button);
     }
 
@@ -451,7 +461,8 @@ void WorkbenchPage::updateReceiveModeButton()
     const bool hexMode = isReceiveHexMode(currentDisplayMode());
     const QString currentLabel = shortcutReceiveDisplayModeLabel(hexMode);
     const QString nextLabel = shortcutReceiveDisplayModeLabel(!hexMode);
-    m_receiveModeButton->setIcon(icon(hexMode ? FluentIcon::Unit : FluentIcon::Font));
+    m_receiveModeButton->setIcon(QIcon());
+    m_receiveModeButton->setText(hexMode ? QStringLiteral("HEX") : AppI18n::text("文本"));
     m_receiveModeButton->setToolTip(AppI18n::text("当前接收显示为 %1，点击切换为 %2").arg(currentLabel, nextLabel));
 }
 

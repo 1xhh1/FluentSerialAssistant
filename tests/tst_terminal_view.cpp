@@ -185,7 +185,10 @@ class TerminalViewTest : public QObject
             QList<QRect> buttonBounds;
             for (auto *button : buttons) {
                 QVERIFY(button->isVisible());
-                QCOMPARE(button->size(), clearButton->size());
+                // The receive-mode toggle is a labeled button and is wider by design.
+                if (button != page.m_receiveModeButton) {
+                    QCOMPARE(button->size(), clearButton->size());
+                }
                 const QRect bounds(button->mapTo(page.viewport(), QPoint()), button->size());
                 QVERIFY(page.viewport()->rect().contains(bounds));
                 QVERIFY(actionBounds.contains(bounds));

@@ -11,7 +11,10 @@
 #include <QtCore/QFile>
 #include <QtCore/QSettings>
 #include <QtCore/QTimer>
+#include <QtGui/QPixmap>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QProgressBar>
+#include <QtWidgets/QSplashScreen>
 #include <QtWidgets/QStyleFactory>
 
 int main(int argc, char *argv[])
@@ -54,7 +57,23 @@ int main(int argc, char *argv[])
     FluentQt::ThemeManager::instance()->setAccentColor(FluentQt::FluentConfig::instance()->themeColor());
     AppFontPreferences::applyConfiguredUiFont();
 
+    // Startup splash: a dark card with the logo, an indeterminate-style bar
+    // and staged status text, replaced by the main window once it is up.
+    QPixmap splashPixmap(QStringLiteral(":/app/splash.png"));
+    QSplashScreen splash(splashPixmap);
+    auto *splashProgress = new QProgressBar(&splash);
+    splashProgress->setGeometry(46, 372, 420, 6);
+    splashProgress->setTextVisible(false);
+    splashProgress->setRange(0, 0);
+    splashProgress->setStyleSheet(
+        QStringLiteral("QProgressBar { background: rgba(255,255,255,38); border: none; border-radius: 3px; }"
+                       "QProgressBar::chunk { background: #00d3d8; border-radius: 3px; }"));
+    splash.show();
+    splashProgress->raise();
+    QApplication::processEvents();
+
     MainWindow window;
+    splash.finish(&window);
     window.show();
     QTimer::singleShot(1000, &window, &MainWindow::startUpdateCheck);
 

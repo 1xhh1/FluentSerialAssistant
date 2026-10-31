@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/app">
         <file alias="logo.png">../../../logo.png</file>
+        <file alias="splash.png">splash.png</file>
         <file alias="i18n/fluentserialassistant.en_US.qm">i18n/fluentserialassistant.en_US.qm</file>
         <file alias="i18n/fluentserialassistant.en_US.ts">i18n/fluentserialassistant.en_US.ts</file>
         <file alias="i18n/fluentserialassistant.zh_CN.qm">i18n/fluentserialassistant.zh_CN.qm</file>
