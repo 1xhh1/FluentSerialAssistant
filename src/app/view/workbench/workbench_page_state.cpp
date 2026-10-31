@@ -271,6 +271,8 @@ void WorkbenchPage::restoreSettings()
     const QColor txColor(
         settings.value(QStringLiteral("send/txColor"), defaultTxColor().name(QColor::HexRgb)).toString());
     m_txColorButton->setColor(txColor.isValid() ? txColor : defaultTxColor());
+    const QColor rxColor(settings.value(QStringLiteral("send/rxColor"), defaultRxColor().name(QColor::HexRgb)).toString());
+    m_rxColorButton->setColor(rxColor.isValid() ? rxColor : defaultRxColor());
     m_txColorButton->setEnabled(m_showTxCheck->isChecked());
     m_autoReconnectCheck->setChecked(settings.value(QStringLiteral("serial/autoReconnect"), true).toBool());
     m_sendEdit->setPlainText(sendPayload);
@@ -363,6 +365,7 @@ void WorkbenchPage::saveSettings() const
     settings.setValue(QStringLiteral("send/lineEnding"), selectedLineEndingKey());
     settings.setValue(QStringLiteral("send/showTx"), m_showTxCheck->isChecked());
     settings.setValue(QStringLiteral("send/txColor"), selectedTxColor().name(QColor::HexRgb));
+    settings.setValue(QStringLiteral("send/rxColor"), selectedRxColor().name(QColor::HexRgb));
     settings.setValue(QStringLiteral("send/loopIntervalMs"), numberEditValue(m_loopIntervalEdit, 1000, 10, 600000));
     settings.setValue(QStringLiteral("send/currentPayload"), m_sendEdit->toPlainText());
     settings.setValue(QStringLiteral("send/currentPacketGroup"), m_packetGroupEdit->text());

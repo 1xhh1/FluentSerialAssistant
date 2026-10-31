@@ -668,9 +668,12 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     }
     m_txColorButton = new ColorPickerButton(defaultTxColor(), AppI18n::text("TX 颜色"), sendOptions);
     m_txColorButton->setFixedSize(32, CompactControlHeight);
+    m_rxColorButton = new ColorPickerButton(defaultRxColor(), AppI18n::text("RX 颜色"), sendOptions);
+    m_rxColorButton->setFixedSize(32, CompactControlHeight);
     sendOptionsGrid->addWidget(m_hexSendCheck, 0, 0);
     sendOptionsGrid->addWidget(m_showTxCheck, 0, 1);
     sendOptionsGrid->addWidget(m_txColorButton, 0, 2);
+    sendOptionsGrid->addWidget(m_rxColorButton, 0, 3);
     sendOptionsGrid->addWidget(m_loopCheck, 1, 0);
     sendOptionsGrid->addWidget(m_autoReconnectCheck, 1, 1);
     sendOptionsGrid->addWidget(m_escapeParseCheck, 2, 0);
@@ -732,6 +735,11 @@ QWidget *WorkbenchPage::createSendSettingsSection()
         settings.setValue(QStringLiteral("send/txColor"), color.name(QColor::HexRgb));
         renderTerminal();
     });
+    connect(m_rxColorButton, &ColorPickerButton::colorChanged, this, [this](const QColor &color) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("send/rxColor"), color.name(QColor::HexRgb));
+        renderTerminal();
+    });
     connect(m_loopCheck, &CheckBox::toggled, this, &WorkbenchPage::onLoopChanged);
     connect(m_autoReconnectCheck, &CheckBox::toggled, this, [](bool checked) {
         AppSettings settings;
@@ -775,6 +783,7 @@ QWidget *WorkbenchPage::createPacketSection()
     m_packetModeCombo = new ComboBox(section);
     m_packetModeCombo->addItem(AppI18n::text("文本"), QIcon(), QStringLiteral("text"));
     m_packetModeCombo->addItem(QStringLiteral("HEX"), QIcon(), QStringLiteral("hex"));
+    m_packetModeCombo->addItem(AppI18n::text("模板"), QIcon(), QStringLiteral("template"));
     m_packetModeCombo->setCurrentIndex(0);
     makeCompactControl(m_packetModeCombo);
     m_packetLineEndingCombo = new ComboBox(section);

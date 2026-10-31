@@ -2986,6 +2986,34 @@ Installation log: %2</translation>
         <translation>virtual port</translation>
     </message>
     <message>
+        <source>模板</source>
+        <translation>Template</translation>
+    </message>
+    <message>
+        <source>模板输入无效</source>
+        <translation>Invalid template input</translation>
+    </message>
+    <message>
+        <source>不支持的模板占位符</source>
+        <translation>Unsupported template placeholder</translation>
+    </message>
+    <message>
+        <source>占位符数值无效</source>
+        <translation>Invalid placeholder value</translation>
+    </message>
+    <message>
+        <source>占位符数值超出 %1 范围</source>
+        <translation>Placeholder value out of %1 range</translation>
+    </message>
+    <message>
+        <source>模板占位符缺少右括号</source>
+        <translation>Template placeholder is missing the closing bracket</translation>
+    </message>
+    <message>
+        <source>RX 颜色</source>
+        <translation>RX color</translation>
+    </message>
+    <message>
         <source>时间戳格式</source>
         <translation>Timestamp format</translation>
     </message>

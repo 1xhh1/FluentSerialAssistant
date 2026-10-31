@@ -5,6 +5,7 @@
 #include "app/view/workbench_page.h"
 
 #include "app/core/checksum_utils.h"
+#include "app/core/command_template.h"
 #include "app/core/font_preferences.h"
 #include "app/core/hex_utils.h"
 #include "app/core/modbus_utils.h"
@@ -322,7 +323,13 @@ inline QString defaultExportFolder()
 
 inline QString modeLabel(const QString &mode)
 {
-    return mode == QStringLiteral("hex") ? QStringLiteral("HEX") : AppI18n::text("文本");
+    if (mode == QStringLiteral("hex")) {
+        return QStringLiteral("HEX");
+    }
+    if (mode == QStringLiteral("template")) {
+        return AppI18n::text("模板");
+    }
+    return AppI18n::text("文本");
 }
 
 inline QString lineEndingLabel(const QString &lineEnding)
@@ -407,6 +414,8 @@ inline QStringList commonBaudRateTexts()
 }
 
 inline QColor defaultTxColor() { return QColor(QStringLiteral("#ff9f0a")); }
+
+inline QColor defaultRxColor() { return QColor(QStringLiteral("#64d2ff")); }
 
 inline void addEncodingOptions(ComboBox *combo)
 {

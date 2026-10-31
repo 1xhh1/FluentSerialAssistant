@@ -492,7 +492,7 @@ void WorkbenchPage::loadSendPackets()
         if (packet.name.isEmpty() || packet.payload.isEmpty()) {
             continue;
         }
-        if (packet.mode != QStringLiteral("hex")) {
+        if (packet.mode != QStringLiteral("hex") && packet.mode != QStringLiteral("template")) {
             packet.mode = QStringLiteral("text");
         }
         if (packet.lineEnding != QStringLiteral("cr") && packet.lineEnding != QStringLiteral("lf") &&
@@ -590,7 +590,7 @@ void WorkbenchPage::importSendPackets()
             ++skipped;
             continue;
         }
-        if (packet.mode != QStringLiteral("hex")) {
+        if (packet.mode != QStringLiteral("hex") && packet.mode != QStringLiteral("template")) {
             packet.mode = QStringLiteral("text");
         }
         if (packet.lineEnding != QStringLiteral("cr") && packet.lineEnding != QStringLiteral("lf") &&

@@ -275,6 +275,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     QString formatRecordLine(const SessionRecord &record, int *contentStart = nullptr) const;
     void applyTerminalColorConfig(const AppTerminal::ColorConfig &config);
     QColor selectedTxColor() const;
+    QColor selectedRxColor() const;
     // Puts the checksum in front of the bytes skipped at the end and the line
     // ending. A failure goes to error, or to a warning when error is null.
     QByteArray payloadWithOptionalChecksum(const QByteArray &payload, const QString &lineEndingKey, bool *ok = nullptr,
@@ -680,6 +681,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::LineEdit *m_fileIntervalEdit = nullptr;
     FluentQt::LineEdit *m_autoLogMaxSizeEdit = nullptr;
     FluentQt::ColorPickerButton *m_txColorButton = nullptr;
+    FluentQt::ColorPickerButton *m_rxColorButton = nullptr;
     FluentQt::LineEdit *m_filePathEdit = nullptr;
     FluentQt::ProgressBar *m_fileProgressBar = nullptr;
     FluentQt::CaptionLabel *m_receiveCaptureLabel = nullptr;

@@ -1,5 +1,6 @@
 #include "app/core/app_i18n.h"
 #include "app/core/checksum_utils.h"
+#include "app/core/command_template.h"
 #include "app/core/hex_utils.h"
 #include "app/core/modbus_utils.h"
 #include "app/core/protocol_template.h"
@@ -133,6 +134,86 @@ class FrameCodecsTest : public QObject
         const EscapeParseResult result = parseEscapedTextPayload(QStringLiteral("温度\\x41"), QStringLiteral("utf-8"));
         QVERIFY2(result.ok, qPrintable(result.errorMessage));
         QCOMPARE(result.bytes, QString::fromUtf8("温度").toUtf8() + QByteArrayLiteral("A"));
+    }
+
+    static CommandTemplateResult renderTemplate(const QString &input, bool bigEndian,
+                                                bool *checksumCalled = nullptr, QByteArray *checksumInput = nullptr)
+    {
+        return renderCommandTemplate(
+            input, bigEndian,
+            [&](const QByteArray &rendered, QString *error) {
+                if (checksumCalled) {
+                    *checksumCalled = true;
+                }
+                if (checksumInput) {
+                    *checksumInput = rendered;
+                }
+                // sum8, matching the renderer-agnostic checksum contract.
+                quint8 sum = 0;
+                for (unsigned char byte : rendered) {
+                    sum = static_cast<quint8>(sum + byte);
+                }
+                Q_UNUSED(error);
+                return QByteArray(1, static_cast<char>(sum));
+            });
+    }
+
+    void commandTemplatesRenderTypedPlaceholders_data()
+    {
+        QTest::addColumn<QString>("input");
+        QTest::addColumn<bool>("bigEndian");
+        QTest::addColumn<QByteArray>("bytes");
+        QTest::newRow("typed values") << QStringLiteral("AA 55 [i8:-3] [u16:0x0100]") << false
+                                      << QByteArray("\xAA\x55\xFD\x00\x01", 5);
+        QTest::newRow("big endian i16") << QStringLiteral("[i16:-2]") << true << QByteArray("\xFF\xFE", 2);
+        QTest::newRow("float") << QStringLiteral("[f32:1.0]") << false
+                               << QByteArray::fromHex("0000803F");
+        QTest::newRow("plain hex stays") << QStringLiteral("AA55") << false << QByteArray("\xAA\x55", 2);
+    }
+
+    void commandTemplatesRenderTypedPlaceholders()
+    {
+        QFETCH(QString, input);
+        QFETCH(bool, bigEndian);
+        QFETCH(QByteArray, bytes);
+        bool checksumCalled = false;
+        const CommandTemplateResult result = renderTemplate(input, bigEndian, &checksumCalled);
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        QCOMPARE(result.bytes, bytes);
+        QVERIFY(!checksumCalled);
+        QCOMPARE(result.errorOffset, qsizetype(-1));
+    }
+
+    void commandTemplateInjectsChecksumAtPlaceholder()
+    {
+        bool checksumCalled = false;
+        QByteArray checksumInput;
+        const CommandTemplateResult result = renderTemplate(QStringLiteral("AA 55 01 [i8:7] [crc] 0D 0A"), false,
+                                                            &checksumCalled, &checksumInput);
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        // Checksum covers only the bytes rendered before the placeholder.
+        QCOMPARE(checksumInput, QByteArray("\xAA\x55\x01\x07", 4));
+        // sum8(AA 55 01 07) = 0x07 -> frame: AA 55 01 07 07 0D 0A
+        QCOMPARE(result.bytes, QByteArray("\xAA\x55\x01\x07\x07\x0D\x0A", 7));
+    }
+
+    void malformedCommandTemplatesReportErrors_data()
+    {
+        QTest::addColumn<QString>("input");
+        QTest::addColumn<qsizetype>("offset");
+        QTest::newRow("unknown placeholder") << QStringLiteral("[u7:1]") << qsizetype(0);
+        QTest::newRow("missing close") << QStringLiteral("AA [u8:1") << qsizetype(3);
+        QTest::newRow("value out of range") << QStringLiteral("[i8:300]") << qsizetype(0);
+        QTest::newRow("bad hex token") << QStringLiteral("ZZ") << qsizetype(0);
+    }
+
+    void malformedCommandTemplatesReportErrors()
+    {
+        QFETCH(QString, input);
+        QFETCH(qsizetype, offset);
+        const CommandTemplateResult result = renderTemplate(input, false);
+        QVERIFY(!result.ok);
+        QCOMPARE(result.errorOffset, offset);
     }
 
     void checksumsMatchStandardCheckValues_data()

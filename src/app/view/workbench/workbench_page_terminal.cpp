@@ -79,6 +79,29 @@ QByteArray WorkbenchPage::payloadFromText(const QString &payloadText, const QStr
             return data;
         }
         data = result.bytes;
+    } else if (mode == QStringLiteral("template")) {
+        const bool bigEndian = checksumByteOrder() == AppChecksum::ByteOrder::BigEndian;
+        const QString algorithm = checksumAlgorithmKey();
+        const AppChecksum::ByteOrder order = checksumByteOrder();
+        const CommandTemplateResult result =
+            renderCommandTemplate(payloadText, bigEndian, [algorithm, order](const QByteArray &rendered, QString *error) {
+                const AppChecksum::ChecksumResult checksum = AppChecksum::calculate(rendered, algorithm, order);
+                if (!checksum.ok && error) {
+                    *error = checksum.errorMessage;
+                }
+                return checksum.bytes;
+            });
+        if (!result.ok) {
+            if (focusEditorOnError) {
+                m_sendEdit->setFocus();
+            }
+            showWarning(AppI18n::text("模板输入无效"),
+                        result.errorOffset >= 0
+                            ? AppI18n::text("%1，位置 %2").arg(result.errorMessage).arg(result.errorOffset + 1)
+                            : result.errorMessage);
+            return data;
+        }
+        data = result.bytes;
     } else {
         if (m_escapeParseCheck && m_escapeParseCheck->isChecked()) {
             const EscapeParseResult result = parseEscapedTextPayload(payloadText, sendEncodingKey());
@@ -321,6 +344,16 @@ QColor WorkbenchPage::selectedTxColor() const
     QColor color = m_txColorButton ? m_txColorButton->color() : defaultTxColor();
     if (!color.isValid()) {
         color = defaultTxColor();
+    }
+    color.setAlpha(255);
+    return color;
+}
+
+QColor WorkbenchPage::selectedRxColor() const
+{
+    QColor color = m_rxColorButton ? m_rxColorButton->color() : defaultRxColor();
+    if (!color.isValid()) {
+        color = defaultRxColor();
     }
     color.setAlpha(255);
     return color;
@@ -850,6 +883,8 @@ void WorkbenchPage::appendStyledTerminalText(QTextCursor &cursor, const SessionR
     QTextCharFormat format;
     if (record.direction == RecordDirection::Tx) {
         format.setForeground(selectedTxColor());
+    } else if (record.direction == RecordDirection::Rx) {
+        format.setForeground(selectedRxColor());
     }
     const int lineDocumentStart = cursor.position();
     const QList<SearchMatchRange> searchRanges = terminalSearchRanges(line, query);
