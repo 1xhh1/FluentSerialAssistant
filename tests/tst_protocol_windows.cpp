@@ -73,7 +73,8 @@ class ProtocolWindowsTest : public QObject
         page.show();
         QVERIFY(page.m_sidePanel && page.m_sideScroll && page.m_toolboxWindow);
 
-        // The sidebar now carries the connection setup only, always expanded.
+        // The sidebar keeps two cards - the connection setup and the receive/save
+        // quick card - both expanded; everything else lives in the toolbox.
         QList<FluentQt::ExpandSettingCard *> sidebarCards;
         if (auto *sideLayout = qobject_cast<QVBoxLayout *>(page.m_sidePanel->layout())) {
             for (int index = 0; index < sideLayout->count(); ++index) {
@@ -82,8 +83,10 @@ class ProtocolWindowsTest : public QObject
                 }
             }
         }
-        QCOMPARE(sidebarCards.size(), 1);
-        QVERIFY(sidebarCards.first()->isExpanded());
+        QCOMPARE(sidebarCards.size(), 2);
+        for (auto *card : sidebarCards) {
+            QVERIFY(card->isExpanded());
+        }
 
         // Every tool is hosted by the toolbox window with real content.
         ToolboxWindow *toolbox = page.m_toolboxWindow;

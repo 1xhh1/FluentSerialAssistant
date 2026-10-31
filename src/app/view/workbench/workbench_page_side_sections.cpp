@@ -132,6 +132,7 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_rttAddressEdit = new LineEdit(m_rttMemoryPanel);
     m_rttAddressEdit->setObjectName(QStringLiteral("rttAddressEdit"));
     m_rttAddressEdit->setPlaceholderText(QStringLiteral("0x20000000"));
+    addGroupHeading(rttMemoryLayout, AppI18n::text("读取"), AppI18n::text("填地址与字节数，从目标内存读出 HEX。"));
     addFormRow(rttMemoryLayout, AppI18n::text("内存地址"), m_rttAddressEdit);
     m_rttSizeEdit = new LineEdit(m_rttMemoryPanel);
     m_rttSizeEdit->setObjectName(QStringLiteral("rttSizeEdit"));
@@ -143,6 +144,7 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_rttWriteEdit = new LineEdit(m_rttMemoryPanel);
     m_rttWriteEdit->setObjectName(QStringLiteral("rttWriteEdit"));
     m_rttWriteEdit->setPlaceholderText(AppI18n::text("写入字节，HEX 格式，如：00 10 20 30"));
+    addGroupHeading(rttMemoryLayout, AppI18n::text("写入"), AppI18n::text("写入 HEX 数据，可回读校验。"));
     addFormRow(rttMemoryLayout, AppI18n::text("写入内容"), m_rttWriteEdit);
     m_rttWriteButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("写入并校验"), m_rttMemoryPanel);
     m_rttWriteButton->setObjectName(QStringLiteral("rttWriteButton"));
@@ -249,23 +251,13 @@ QWidget *WorkbenchPage::createConnectionSection()
     return section;
 }
 
-QWidget *WorkbenchPage::createReceiveSettingsSection()
+QWidget *WorkbenchPage::createQuickReceiveSection()
 {
-    auto *section = new ExpandSettingCard(FluentIcon::Download, AppI18n::text("接收设置"), QString(), this);
+    auto *section = new ExpandSettingCard(FluentIcon::Save, AppI18n::text("接收与保存"), QString(), this);
     auto *root = cardBody(section);
 
-    m_displayModeSegment = new SegmentedWidget(section);
-    m_displayModeSegment->addItem(QStringLiteral("text"), AppI18n::text("文本"));
-    m_displayModeSegment->addItem(QStringLiteral("hex"), QStringLiteral("HEX"));
-    m_displayModeSegment->addItem(QStringLiteral("mixed"), AppI18n::text("混合"));
-    m_displayModeSegment->setCurrentItem(QStringLiteral("text"));
-    root->addWidget(m_displayModeSegment);
-
-    m_receiveEncodingCombo = new ComboBox(section);
-    addEncodingOptions(m_receiveEncodingCombo);
-    makeCompactControl(m_receiveEncodingCombo);
-    addFormRow(root, AppI18n::text("编码"), m_receiveEncodingCombo);
-
+    // Display switches: the toggles used while watching the stream.
+    addGroupHeading(root, AppI18n::text("显示"));
     auto *receiveOptions = new QWidget(section);
     auto *receiveOptionsGrid = new QGridLayout(receiveOptions);
     receiveOptionsGrid->setContentsMargins(0, 0, 0, 0);
@@ -273,19 +265,20 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     receiveOptionsGrid->setVerticalSpacing(6);
     receiveOptionsGrid->setColumnStretch(0, 1);
     receiveOptionsGrid->setColumnStretch(1, 1);
-    m_saveReceiveCheck = new CheckBox(AppI18n::text("保存接收"), receiveOptions);
+    receiveOptionsGrid->setColumnStretch(2, 1);
     m_autoScrollCheck = new CheckBox(AppI18n::text("自动滚动"), receiveOptions);
     m_timestampCheck = new CheckBox(AppI18n::text("时间戳"), receiveOptions);
     m_pauseCheck = new CheckBox(AppI18n::text("暂停显示"), receiveOptions);
-    for (CheckBox *check : {m_saveReceiveCheck, m_autoScrollCheck, m_timestampCheck, m_pauseCheck}) {
+    for (CheckBox *check : {m_autoScrollCheck, m_timestampCheck, m_pauseCheck}) {
         check->setMinimumWidth(0);
         check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     }
-    receiveOptionsGrid->addWidget(m_saveReceiveCheck, 0, 0);
-    receiveOptionsGrid->addWidget(m_autoScrollCheck, 0, 1);
-    receiveOptionsGrid->addWidget(m_timestampCheck, 1, 0);
-    receiveOptionsGrid->addWidget(m_pauseCheck, 1, 1);
-    m_timestampFormatCombo = new ComboBox(receiveOptions);
+    receiveOptionsGrid->addWidget(m_autoScrollCheck, 0, 0);
+    receiveOptionsGrid->addWidget(m_timestampCheck, 0, 1);
+    receiveOptionsGrid->addWidget(m_pauseCheck, 0, 2);
+    root->addWidget(receiveOptions);
+
+    m_timestampFormatCombo = new ComboBox(section);
     m_timestampFormatCombo->setObjectName(QStringLiteral("timestampFormatCombo"));
     m_timestampFormatCombo->addItem(AppI18n::text("时:分:秒"), QIcon(), QStringLiteral("HH:mm:ss"));
     m_timestampFormatCombo->addItem(AppI18n::text("时:分:秒.毫秒"), QIcon(), QStringLiteral("HH:mm:ss.zzz"));
@@ -295,49 +288,16 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     makeCompactControl(m_timestampFormatCombo);
     m_timestampFormatCombo->setEnabled(false);
     addFormRow(root, AppI18n::text("时间戳格式"), m_timestampFormatCombo);
-    root->addWidget(receiveOptions);
 
-    m_autoLogFormatCombo = new ComboBox(section);
-    m_autoLogFormatCombo->addItem(QStringLiteral("TXT"), QIcon(), QStringLiteral("txt"));
-    m_autoLogFormatCombo->addItem(QStringLiteral("CSV"), QIcon(), QStringLiteral("csv"));
-    m_autoLogFormatCombo->addItem(QStringLiteral("BIN"), QIcon(), QStringLiteral("bin"));
-    makeCompactControl(m_autoLogFormatCombo);
-    m_autoLogCheck = new CheckBox(AppI18n::text("自动日志"), section);
-    m_autoLogCheck->setMinimumWidth(0);
-    m_autoLogCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    addFormRow(root, AppI18n::text("日志"), m_autoLogFormatCombo, m_autoLogCheck);
-
-    m_autoLogMaxSizeEdit = createNumberEdit(section, 16, 1, 4096);
-    addFormRow(root, AppI18n::text("滚动"), m_autoLogMaxSizeEdit, unitLabel(QStringLiteral("MB"), section));
-
-    m_frameModeCombo = new ComboBox(section);
-    addFrameModeOptions(m_frameModeCombo);
-    makeCompactControl(m_frameModeCombo);
-    m_autoFrameBreakCheck = new CheckBox(AppI18n::text("启用"), section);
-    m_autoFrameBreakCheck->setMinimumWidth(0);
-    m_autoFrameBreakCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    addFormRow(root, AppI18n::text("断帧"), m_frameModeCombo, m_autoFrameBreakCheck);
-
-    m_framePatternEdit = new LineEdit(section);
-    m_framePatternEdit->setPlaceholderText(AppI18n::text("HEX 边界，如 AA 55 或 0D 0A"));
-    makeCompactControl(m_framePatternEdit);
-    addFormRow(root, AppI18n::text("边界"), m_framePatternEdit);
-
-    m_frameFixedLengthEdit = createNumberEdit(section, 8, 1, 65536);
-    addFormRow(root, AppI18n::text("长度"), m_frameFixedLengthEdit, unitLabel(QStringLiteral("B"), section));
-
-    m_frameBreakIntervalEdit = createNumberEdit(section, 20, 1, 60000);
-    addFormRow(root, AppI18n::text("超时"), m_frameBreakIntervalEdit, unitLabel(QStringLiteral("ms"), section));
-
-    auto *actionRow = new QHBoxLayout;
-    actionRow->setSpacing(8);
-    m_clearButton = new PushButton(icon(FluentIcon::Broom), AppI18n::text("清空"), section);
-    m_resetCountersButton = new PushButton(icon(FluentIcon::Cancel), AppI18n::text("计数"), section);
-    setButtonRowControlPolicy(m_clearButton);
-    setButtonRowControlPolicy(m_resetCountersButton);
-    actionRow->addWidget(m_clearButton);
-    actionRow->addWidget(m_resetCountersButton);
-    root->addLayout(actionRow);
+    // Saving: capture to file, rolling log, and one-shot exports.
+    addGroupHeading(root, AppI18n::text("保存与导出"));
+    m_saveReceiveCheck = new CheckBox(AppI18n::text("保存接收"), section);
+    m_saveReceiveCheck->setMinimumWidth(0);
+    m_saveReceiveCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    m_receiveCaptureLabel = new CaptionLabel(AppI18n::text("接收保存未启用"), section);
+    m_receiveCaptureLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
+    m_receiveCaptureLabel->setWordWrap(true);
+    root->addWidget(m_receiveCaptureLabel);
 
     auto *exportRow = new QHBoxLayout;
     exportRow->setSpacing(8);
@@ -352,15 +312,127 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     exportRow->addWidget(m_exportBinButton);
     root->addLayout(exportRow);
 
-    m_receiveCaptureLabel = new CaptionLabel(AppI18n::text("接收保存未启用"), section);
-    m_receiveCaptureLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
-    m_receiveCaptureLabel->setWordWrap(true);
-    root->addWidget(m_receiveCaptureLabel);
+    auto *counterRow = new QHBoxLayout;
+    counterRow->setSpacing(8);
+    m_resetCountersButton = new PushButton(icon(FluentIcon::Cancel), AppI18n::text("计数清零"), section);
+    m_clearButton = new PushButton(icon(FluentIcon::Broom), AppI18n::text("清空接收区"), section);
+    setButtonRowControlPolicy(m_resetCountersButton);
+    setButtonRowControlPolicy(m_clearButton);
+    counterRow->addWidget(m_resetCountersButton);
+    counterRow->addWidget(m_clearButton);
+    root->addLayout(counterRow);
+
+    connect(m_autoScrollCheck, &CheckBox::toggled, this, [this](bool checked) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/autoScroll"), checked);
+        if (checked) {
+            renderTerminal();
+        }
+    });
+    connect(m_timestampCheck, &CheckBox::toggled, this, [this](bool checked) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/timestamp"), checked);
+        if (m_timestampFormatCombo) {
+            m_timestampFormatCombo->setEnabled(checked);
+        }
+        if (m_timestampButton) {
+            m_timestampButton->setChecked(checked);
+        }
+        renderTerminal();
+    });
+    connect(m_timestampFormatCombo, &ComboBox::currentIndexChanged, this, [this](int) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/timestampFormat"), terminalTimestampFormat());
+        renderTerminal();
+    });
+    connect(m_pauseCheck, &CheckBox::toggled, this, [this](bool checked) {
+        if (!checked) {
+            flushPendingLines();
+        }
+    });
+    connect(m_saveReceiveCheck, &CheckBox::toggled, this, &WorkbenchPage::updateReceiveCapture);
+    connect(m_resetCountersButton, &PushButton::clicked, this, &WorkbenchPage::resetCounters);
+    connect(m_clearButton, &PushButton::clicked, this, &WorkbenchPage::clearTerminal);
+    connect(m_exportTxtButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Txt); });
+    connect(m_exportCsvButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Csv); });
+    connect(m_exportBinButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Bin); });
+
+    makeCollapsibleCard(section, QStringLiteral("quickReceive"), true);
+    return section;
+}
+
+QWidget *WorkbenchPage::createReceiveSettingsSection()
+{
+    auto *section = new ExpandSettingCard(FluentIcon::Download, AppI18n::text("接收设置"), QString(), this);
+    auto *root = cardBody(section);
+
+    addGroupHeading(root, AppI18n::text("显示"), AppI18n::text("接收内容在终端里的解析方式；显示开关与保存导出在左侧栏。"));
+    m_displayModeSegment = new SegmentedWidget(section);
+    m_displayModeSegment->addItem(QStringLiteral("text"), AppI18n::text("文本"));
+    m_displayModeSegment->addItem(QStringLiteral("hex"), QStringLiteral("HEX"));
+    m_displayModeSegment->addItem(QStringLiteral("mixed"), AppI18n::text("混合"));
+    m_displayModeSegment->setCurrentItem(QStringLiteral("text"));
+    root->addWidget(m_displayModeSegment);
+
+    m_receiveEncodingCombo = new ComboBox(section);
+    addEncodingOptions(m_receiveEncodingCombo);
+    makeCompactControl(m_receiveEncodingCombo);
+    addFormRow(root, AppI18n::text("编码"), m_receiveEncodingCombo);
+
+    addGroupHeading(root, AppI18n::text("断帧"), AppI18n::text("把连续的字节流切成一条条记录：按帧尾等边界、固定长度或静默超时。"));
+    m_frameModeCombo = new ComboBox(section);
+    addFrameModeOptions(m_frameModeCombo);
+    makeCompactControl(m_frameModeCombo);
+    m_autoFrameBreakCheck = new CheckBox(AppI18n::text("启用"), section);
+    m_autoFrameBreakCheck->setMinimumWidth(0);
+    m_autoFrameBreakCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    addFormRow(root, AppI18n::text("切分方式"), m_frameModeCombo, m_autoFrameBreakCheck);
+
+    m_framePatternEdit = new LineEdit(section);
+    m_framePatternEdit->setPlaceholderText(AppI18n::text("HEX 边界，如 AA 55 或 0D 0A"));
+    makeCompactControl(m_framePatternEdit);
+    addFormRow(root, AppI18n::text("帧尾/边界"), m_framePatternEdit);
+
+    m_frameFixedLengthEdit = createNumberEdit(section, 8, 1, 65536);
+    addFormRow(root, AppI18n::text("固定长度"), m_frameFixedLengthEdit, unitLabel(QStringLiteral("B"), section));
+
+    m_frameBreakIntervalEdit = createNumberEdit(section, 20, 1, 60000);
+    addFormRow(root, AppI18n::text("静默超时"), m_frameBreakIntervalEdit, unitLabel(QStringLiteral("ms"), section));
+
+    addGroupHeading(root, AppI18n::text("日志"), AppI18n::text("把接收记录持续写入文件；超过滚动上限自动换新文件。"));
+    m_autoLogFormatCombo = new ComboBox(section);
+    m_autoLogFormatCombo->addItem(QStringLiteral("TXT"), QIcon(), QStringLiteral("txt"));
+    m_autoLogFormatCombo->addItem(QStringLiteral("CSV"), QIcon(), QStringLiteral("csv"));
+    m_autoLogFormatCombo->addItem(QStringLiteral("BIN"), QIcon(), QStringLiteral("bin"));
+    makeCompactControl(m_autoLogFormatCombo);
+    m_autoLogCheck = new CheckBox(AppI18n::text("自动日志"), section);
+    m_autoLogCheck->setMinimumWidth(0);
+    m_autoLogCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    addFormRow(root, AppI18n::text("日志格式"), m_autoLogFormatCombo, m_autoLogCheck);
+
+    m_autoLogMaxSizeEdit = createNumberEdit(section, 16, 1, 4096);
+    addFormRow(root, AppI18n::text("日志滚动"), m_autoLogMaxSizeEdit, unitLabel(QStringLiteral("MB"), section));
 
     m_autoLogStatusLabel = new CaptionLabel(AppI18n::text("自动日志未启用"), section);
     m_autoLogStatusLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
     m_autoLogStatusLabel->setWordWrap(true);
     root->addWidget(m_autoLogStatusLabel);
+
+    connect(m_autoLogCheck, &CheckBox::toggled, this, &WorkbenchPage::updateAutoLog);
+    connect(m_autoLogFormatCombo, &ComboBox::currentIndexChanged, this, [this](int) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("log/format"), autoLogFormatKey());
+        resetAutoLogSession();
+        updateAutoLogStatus();
+    });
+    connect(m_autoLogMaxSizeEdit, &LineEdit::textChanged, this, [this](const QString &) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("log/maxFileSizeMb"), numberEditValue(m_autoLogMaxSizeEdit, 16, 1, 4096));
+        if (m_autoLogFile.isOpen() && m_autoLogCurrentSize >= autoLogMaxFileBytes()) {
+            resetAutoLogSession();
+        }
+        updateAutoLogStatus();
+    });
 
     connect(m_displayModeSegment, &SegmentedWidget::currentItemChanged, this, [this](const QString &routeKey) {
         AppSettings settings;
@@ -390,49 +462,10 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
         settings.setValue(QStringLiteral("receive/frameFixedLength"),
                           numberEditValue(m_frameFixedLengthEdit, 8, 1, 65536));
     });
-    connect(m_saveReceiveCheck, &CheckBox::toggled, this, &WorkbenchPage::updateReceiveCapture);
-    connect(m_autoLogCheck, &CheckBox::toggled, this, &WorkbenchPage::updateAutoLog);
-    connect(m_autoLogFormatCombo, &ComboBox::currentIndexChanged, this, [this](int) {
+    connect(m_frameBreakIntervalEdit, &LineEdit::textChanged, this, [this](const QString &) {
         AppSettings settings;
-        settings.setValue(QStringLiteral("log/format"), autoLogFormatKey());
-        resetAutoLogSession();
-        updateAutoLogStatus();
-    });
-    connect(m_autoLogMaxSizeEdit, &LineEdit::textChanged, this, [this](const QString &) {
-        AppSettings settings;
-        settings.setValue(QStringLiteral("log/maxFileSizeMb"), numberEditValue(m_autoLogMaxSizeEdit, 16, 1, 4096));
-        if (m_autoLogFile.isOpen() && m_autoLogCurrentSize >= autoLogMaxFileBytes()) {
-            resetAutoLogSession();
-        }
-        updateAutoLogStatus();
-    });
-    connect(m_autoScrollCheck, &CheckBox::toggled, this, [this](bool checked) {
-        AppSettings settings;
-        settings.setValue(QStringLiteral("receive/autoScroll"), checked);
-        if (checked) {
-            renderTerminal();
-        }
-    });
-    connect(m_timestampCheck, &CheckBox::toggled, this, [this](bool checked) {
-        AppSettings settings;
-        settings.setValue(QStringLiteral("receive/timestamp"), checked);
-        if (m_timestampFormatCombo) {
-            m_timestampFormatCombo->setEnabled(checked);
-        }
-        if (m_timestampButton) {
-            m_timestampButton->setChecked(checked);
-        }
-        renderTerminal();
-    });
-    connect(m_timestampFormatCombo, &ComboBox::currentIndexChanged, this, [this](int) {
-        AppSettings settings;
-        settings.setValue(QStringLiteral("receive/timestampFormat"), terminalTimestampFormat());
-        renderTerminal();
-    });
-    connect(m_pauseCheck, &CheckBox::toggled, this, [this](bool checked) {
-        if (!checked) {
-            flushPendingLines();
-        }
+        settings.setValue(QStringLiteral("receive/frameBreakMs"),
+                          numberEditValue(m_frameBreakIntervalEdit, 20, 1, 60000));
     });
     connect(m_autoFrameBreakCheck, &CheckBox::toggled, this, [this](bool checked) {
         flushRxFrameBuffer();
@@ -443,16 +476,6 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
         }
         updateFrameControlState();
     });
-    connect(m_frameBreakIntervalEdit, &LineEdit::textChanged, this, [this](const QString &) {
-        AppSettings settings;
-        settings.setValue(QStringLiteral("receive/frameBreakMs"),
-                          numberEditValue(m_frameBreakIntervalEdit, 20, 1, 60000));
-    });
-    connect(m_clearButton, &PushButton::clicked, this, &WorkbenchPage::clearTerminal);
-    connect(m_resetCountersButton, &PushButton::clicked, this, &WorkbenchPage::resetCounters);
-    connect(m_exportTxtButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Txt); });
-    connect(m_exportCsvButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Csv); });
-    connect(m_exportBinButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Bin); });
 
     makeCollapsibleCard(section, QStringLiteral("receive"), true);
     return section;
@@ -470,6 +493,7 @@ QWidget *WorkbenchPage::createProtocolTemplateSection()
     m_protocolEnabledCheck->setObjectName(QStringLiteral("protocolTemplateEnabledCheck"));
     m_protocolEnabledCheck->setMinimumWidth(0);
     m_protocolEnabledCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    addGroupHeading(root, AppI18n::text("选择与启用"), AppI18n::text("启用后收发按模板拆分与校验；点“编辑协议”调整帧结构。"));
     addFormRow(root, AppI18n::text("模板"), m_protocolTemplateCombo, m_protocolEnabledCheck);
 
     auto *editProtocolButton = new PushButton(icon(FluentIcon::Edit), AppI18n::text("编辑协议"), section);
@@ -716,6 +740,7 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     m_lineEndingCombo->addItem(QStringLiteral("LF"), QIcon(), QStringLiteral("lf"));
     m_lineEndingCombo->addItem(QStringLiteral("CRLF"), QIcon(), QStringLiteral("crlf"));
     m_lineEndingCombo->setCurrentIndex(0);
+    addGroupHeading(root, AppI18n::text("文本"), AppI18n::text("换行与编码决定发送内容如何变成字节。"));
     addFormRow(root, AppI18n::text("换行"), m_lineEndingCombo);
 
     m_sendEncodingCombo = new ComboBox(section);
@@ -728,6 +753,7 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     makeCompactControl(m_checksumAlgorithmCombo);
     m_checksumCalcButton = new PushButton(icon(FluentIcon::Asterisk), AppI18n::text("计算"), section);
     m_checksumCalcButton->setFixedHeight(CompactControlHeight);
+    addGroupHeading(root, AppI18n::text("校验"), AppI18n::text("在末尾自动追加校验码；跳过字节用于帧头/尾不参与校验。"));
     addFormRow(root, AppI18n::text("校验"), m_checksumAlgorithmCombo, m_checksumCalcButton);
 
     m_checksumByteOrderCombo = new ComboBox(section);
@@ -769,6 +795,7 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     m_checksumResultLabel->setWordWrap(true);
     root->addWidget(m_checksumResultLabel);
 
+    addGroupHeading(root, AppI18n::text("发送行为"), AppI18n::text("HEX 发送、显示发送内容、回车解析与收发配色。"));
     auto *sendOptions = new QWidget(section);
     auto *sendOptionsGrid = new QGridLayout(sendOptions);
     sendOptionsGrid->setContentsMargins(0, 0, 0, 0);
@@ -801,6 +828,7 @@ QWidget *WorkbenchPage::createSendSettingsSection()
 
     m_historyCombo = new ComboBox(section);
     makeCompactControl(m_historyCombo);
+    addGroupHeading(root, AppI18n::text("定时与历史"), AppI18n::text("定时循环发送与发送历史回填。"));
     addFormRow(root, AppI18n::text("历史"), m_historyCombo);
 
     m_loopIntervalEdit = createNumberEdit(section, 1000, 10, 600000);
@@ -883,6 +911,7 @@ QWidget *WorkbenchPage::createPacketSection()
     m_packetNameEdit = new LineEdit(section);
     m_packetNameEdit->setPlaceholderText(AppI18n::text("包名称"));
     makeCompactControl(m_packetNameEdit);
+    addGroupHeading(root, AppI18n::text("基本信息"), AppI18n::text("名称/分组/备注用于在列表中识别这条报文。"));
     addFormRow(root, AppI18n::text("名称"), m_packetNameEdit);
 
     m_packetGroupEdit = new LineEdit(section);
@@ -896,7 +925,8 @@ QWidget *WorkbenchPage::createPacketSection()
     m_packetNoteEdit = new LineEdit(section);
     m_packetNoteEdit->setPlaceholderText(AppI18n::text("备注"));
     makeCompactControl(m_packetNoteEdit);
-    addFormRow(root, AppI18n::text("备注"), m_packetNoteEdit);
+    addFormRow(root, AppI18n::text("备注"), m_packetNoteEdit);    addGroupHeading(root, AppI18n::text("发送内容"), AppI18n::text("模式、换行与报文内容；快捷键可在任意界面直接发送。"));
+
 
     auto *modeRow = new QHBoxLayout;
     modeRow->setSpacing(8);
@@ -932,6 +962,7 @@ QWidget *WorkbenchPage::createPacketSection()
     m_packetHotkeyEdit->setToolTip(AppI18n::text("按下快捷键立即发送该常用包"));
     addFormRow(root, AppI18n::text("快捷键"), m_packetHotkeyEdit);
 
+    addGroupHeading(root, AppI18n::text("报文列表"), AppI18n::text("选中后可用下方按钮编辑、排序或发送。"));
     m_packetList = new ListWidget(section);
     m_packetList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_packetList->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -960,6 +991,7 @@ QWidget *WorkbenchPage::createPacketSection()
     moveRow->addWidget(m_packetLoadButton);
     root->addLayout(moveRow);
 
+    addGroupHeading(root, AppI18n::text("导入导出"), AppI18n::text("JSON 导入/导出整包，或把发送区内容存为快捷包。"));
     auto *ioRow = new QHBoxLayout;
     ioRow->setSpacing(8);
     m_packetImportButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("导入 JSON"), section);
@@ -973,6 +1005,7 @@ QWidget *WorkbenchPage::createPacketSection()
     ioRow->addWidget(m_packetFromSendButton);
     root->addLayout(ioRow);
 
+    addGroupHeading(root, AppI18n::text("发送"), AppI18n::text("发送选中报文、批量发送或删除。"));
     auto *actionRow = new QHBoxLayout;
     actionRow->setSpacing(8);
     m_packetSendButton = new PrimaryPushButton(icon(FluentIcon::Send), AppI18n::text("发送"), section);
@@ -1014,6 +1047,7 @@ QWidget *WorkbenchPage::createMacroSection()
     makeCompactControl(m_macroNameEdit);
     addFormRow(root, AppI18n::text("步骤"), m_macroNameEdit);
 
+    addGroupHeading(root, AppI18n::text("步骤内容"), AppI18n::text("每一步要发送什么：模式与换行。"));
     auto *modeRow = new QHBoxLayout;
     modeRow->setSpacing(8);
     m_macroModeCombo = new ComboBox(section);
@@ -1046,6 +1080,7 @@ QWidget *WorkbenchPage::createMacroSection()
     m_macroResponseModeCombo->addItem(QStringLiteral("HEX"), QIcon(), QStringLiteral("hex"));
     m_macroResponseModeCombo->setFixedHeight(CompactControlHeight);
     m_macroResponseModeCombo->setFixedWidth(78);
+    addGroupHeading(root, AppI18n::text("响应判定"), AppI18n::text("按预期响应判断该步成败；超时与延时单位为毫秒。"));
     addFormRow(root, AppI18n::text("响应"), m_macroExpectedEdit, m_macroResponseModeCombo);
 
     m_macroTimeoutEdit = createNumberEdit(section, 1000, 1, 600000);
@@ -1054,6 +1089,7 @@ QWidget *WorkbenchPage::createMacroSection()
     m_macroDelayEdit = createNumberEdit(section, 0, 0, 600000);
     addFormRow(root, AppI18n::text("延时"), m_macroDelayEdit, unitLabel(QStringLiteral("ms"), section));
 
+    addGroupHeading(root, AppI18n::text("步骤列表"), AppI18n::text("上/下调整顺序，保存或填入选中步骤。"));
     m_macroList = new ListWidget(section);
     m_macroList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_macroList->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -1093,6 +1129,7 @@ QWidget *WorkbenchPage::createMacroSection()
     m_macroAbortOnFailureCheck = new CheckBox(AppI18n::text("失败中止"), section);
     m_macroAbortOnFailureCheck->setChecked(true);
     m_macroAbortOnFailureCheck->setFixedHeight(CompactControlHeight);
+    addGroupHeading(root, AppI18n::text("流程与运行"), AppI18n::text("循环次数、失败是否中止，以及运行/停止/导出结果。"));
     addFormRow(root, AppI18n::text("循环"), m_macroLoopCountEdit, m_macroAbortOnFailureCheck);
 
     auto *actionRow = new QHBoxLayout;
@@ -1136,6 +1173,7 @@ QWidget *WorkbenchPage::createScriptSection()
     auto *section = new ExpandSettingCard(FluentIcon::DeveloperTools, AppI18n::text("脚本插件"), QString(), this);
     auto *root = cardBody(section);
 
+    addGroupHeading(root, AppI18n::text("脚本内容"), AppI18n::text("可在编辑器里直接改，或载入/保存/插入示例。"));
     m_scriptEdit = new PlainTextEdit(section);
     m_scriptEdit->setPlaceholderText(AppI18n::text("输入 JavaScript 脚本，使用 serial 对象发送、读取和记录日志"));
     m_scriptEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
@@ -1156,6 +1194,7 @@ QWidget *WorkbenchPage::createScriptSection()
     fileRow->addWidget(m_scriptExampleButton);
     root->addLayout(fileRow);
 
+    addGroupHeading(root, AppI18n::text("运行"), AppI18n::text("运行或停止脚本。"));
     auto *actionRow = new QHBoxLayout;
     actionRow->setSpacing(8);
     m_scriptRunButton = new PrimaryPushButton(icon(FluentIcon::Play), AppI18n::text("运行脚本"), section);
@@ -1169,6 +1208,7 @@ QWidget *WorkbenchPage::createScriptSection()
     actionRow->addWidget(m_scriptClearLogButton);
     root->addLayout(actionRow);
 
+    addGroupHeading(root, AppI18n::text("日志"), AppI18n::text("脚本输出与错误显示在这里。"));
     m_scriptLogEdit = new PlainTextEdit(section);
     m_scriptLogEdit->setReadOnly(true);
     m_scriptLogEdit->setPlaceholderText(AppI18n::text("脚本日志"));
@@ -1206,6 +1246,7 @@ QWidget *WorkbenchPage::createAutoReplySection()
     m_autoReplyEnabledCheck = new CheckBox(AppI18n::text("启用"), section);
     m_autoReplyEnabledCheck->setChecked(true);
     m_autoReplyEnabledCheck->setFixedHeight(CompactControlHeight);
+    addGroupHeading(root, AppI18n::text("规则"), AppI18n::text("名称用于列表识别；只有启用后才会参与匹配。"));
     addFormRow(root, AppI18n::text("名称"), m_autoReplyNameEdit, m_autoReplyEnabledCheck);
 
     m_autoReplyPatternEdit = new LineEdit(section);
@@ -1217,8 +1258,10 @@ QWidget *WorkbenchPage::createAutoReplySection()
     m_autoReplyMatchModeCombo->addItem(AppI18n::text("正则"), QIcon(), QStringLiteral("regex"));
     m_autoReplyMatchModeCombo->setFixedHeight(CompactControlHeight);
     m_autoReplyMatchModeCombo->setFixedWidth(78);
+    addGroupHeading(root, AppI18n::text("匹配条件"), AppI18n::text("收到什么内容时触发这条规则。"));
     addFormRow(root, AppI18n::text("匹配"), m_autoReplyPatternEdit, m_autoReplyMatchModeCombo);
 
+    addGroupHeading(root, AppI18n::text("应答内容"), AppI18n::text("回复什么、以什么模式与换行发送，以及延时多久回复。"));
     auto *responseModeRow = new QHBoxLayout;
     responseModeRow->setSpacing(8);
     m_autoReplyResponseModeCombo = new ComboBox(section);
@@ -1246,6 +1289,7 @@ QWidget *WorkbenchPage::createAutoReplySection()
     m_autoReplyDelayEdit = createNumberEdit(section, 0, 0, 600000);
     addFormRow(root, AppI18n::text("延时"), m_autoReplyDelayEdit, unitLabel(QStringLiteral("ms"), section));
 
+    addGroupHeading(root, AppI18n::text("规则列表"), AppI18n::text("上/下调整优先级，前面的规则先匹配。"));
     m_autoReplyList = new ListWidget(section);
     m_autoReplyList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_autoReplyList->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -1271,6 +1315,7 @@ QWidget *WorkbenchPage::createAutoReplySection()
     saveRow->addWidget(m_autoReplySaveButton);
     root->addLayout(saveRow);
 
+    addGroupHeading(root, AppI18n::text("规则操作"), AppI18n::text("新建或删除规则。"));
     auto *editRow = new QHBoxLayout;
     editRow->setSpacing(8);
     m_autoReplyNewButton = new PushButton(icon(FluentIcon::Add), AppI18n::text("新建"), section);
@@ -1312,9 +1357,11 @@ QWidget *WorkbenchPage::createFileSendSection()
     makeCompactControl(m_filePathEdit);
     m_fileBrowseButton = new PushButton(icon(FluentIcon::Folder), AppI18n::text("浏览"), section);
     m_fileBrowseButton->setFixedHeight(CompactControlHeight);
+    addGroupHeading(root, AppI18n::text("文件"), AppI18n::text("选择要发送的文件。"));
     addFormRow(root, AppI18n::text("文件"), m_filePathEdit, m_fileBrowseButton);
 
     m_fileChunkSizeEdit = createNumberEdit(section, DefaultFileChunkSize, 1, 65536);
+    addGroupHeading(root, AppI18n::text("分块与节奏"), AppI18n::text("按块长拆包、按间隔发送，适合固件升级等大文件传输。"));
     addFormRow(root, AppI18n::text("块长"), m_fileChunkSizeEdit, unitLabel(QStringLiteral("B"), section));
 
     m_fileIntervalEdit = createNumberEdit(section, DefaultFileChunkIntervalMs, 0, 60000);

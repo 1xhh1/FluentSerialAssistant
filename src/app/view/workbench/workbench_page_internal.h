@@ -276,6 +276,24 @@ inline void setButtonRowControlPolicy(QWidget *control)
     control->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 }
 
+// A bold group heading with an optional muted hint line under it. Tool pages
+// use these so a page reads as named blocks instead of a wall of controls.
+inline void addGroupHeading(QVBoxLayout *root, const QString &title, const QString &hint = QString())
+{
+    if (!root) {
+        return;
+    }
+    QWidget *parent = root->parentWidget();
+    root->addWidget(new StrongBodyLabel(title, parent));
+    if (hint.isEmpty()) {
+        return;
+    }
+    auto *hintLabel = new CaptionLabel(hint, parent);
+    hintLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
+    hintLabel->setWordWrap(true);
+    root->addWidget(hintLabel);
+}
+
 inline void addFormRow(QVBoxLayout *root, const QString &labelText, QWidget *control, QWidget *extra = nullptr)
 {
     auto *parent = root->parentWidget();

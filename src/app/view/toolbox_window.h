@@ -6,8 +6,10 @@
 #include <QtWidgets/QWidget>
 
 namespace FluentQt {
+class CaptionLabel;
 class ListWidget;
 class ScrollArea;
+class SubtitleLabel;
 } // namespace FluentQt
 
 class QVBoxLayout;
@@ -21,7 +23,8 @@ class ToolboxWindow : public QWidget
   public:
     explicit ToolboxWindow(QWidget *parent = nullptr);
 
-    void addTool(const QString &key, const QString &title, FluentQt::FluentIcon toolIcon, QWidget *card);
+    void addTool(const QString &key, const QString &title, const QString &description,
+                 FluentQt::FluentIcon toolIcon, QWidget *card);
     void switchTool(const QString &key);
     QString currentToolKey() const { return m_currentKey; }
     QWidget *toolPage(const QString &key) const { return m_pages.value(key); }
@@ -30,11 +33,17 @@ class ToolboxWindow : public QWidget
     void toolChanged(const QString &key);
 
   private:
+    void updateHeader();
+
     FluentQt::ListWidget *m_list = nullptr;
     FluentQt::ScrollArea *m_scroll = nullptr;
     QWidget *m_host = nullptr;
     QVBoxLayout *m_hostLayout = nullptr;
+    FluentQt::SubtitleLabel *m_titleLabel = nullptr;
+    FluentQt::CaptionLabel *m_descriptionLabel = nullptr;
     QHash<QString, QWidget *> m_pages;
+    QHash<QString, QString> m_descriptions;
+    QHash<QString, QString> m_titles;
     QHash<QString, int> m_rowByKey;
     QHash<int, QString> m_keyByRow;
     QString m_currentKey;

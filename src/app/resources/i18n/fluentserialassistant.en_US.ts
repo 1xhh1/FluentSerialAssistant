@@ -3417,6 +3417,298 @@ Installation log: %2</translation>
         <source>工具箱：协议模板、Modbus、常用包、宏命令、脚本、自动应答、文件发送</source>
         <translation>Toolbox: protocol templates, Modbus, packets, macros, scripts, auto reply, file sending</translation>
     </message>
+    <message>
+        <source>HEX 发送、显示发送内容、回车解析与收发配色。</source>
+        <translation>HEX send, show sent text, Enter parsing and TX/RX colours.</translation>
+    </message>
+    <message>
+        <source>JSON 导入/导出整包，或把发送区内容存为快捷包。</source>
+        <translation>Import/export the whole set as JSON, or save the send area as a quick packet.</translation>
+    </message>
+    <message>
+        <source>Modbus 主站：选功能码、从站与寄存器，自动生成请求帧并可一键发送。</source>
+        <translation>Modbus master: pick the function code, slave and registers; the request frame is built and can be sent in one click.</translation>
+    </message>
+    <message>
+        <source>上/下调整优先级，前面的规则先匹配。</source>
+        <translation>Move rules up/down; earlier rules match first.</translation>
+    </message>
+    <message>
+        <source>上/下调整顺序，保存或填入选中步骤。</source>
+        <translation>Reorder with up/down; save or load the selected step.</translation>
+    </message>
+    <message>
+        <source>保存与导出</source>
+        <translation>Save &amp; Export</translation>
+    </message>
+    <message>
+        <source>内存地址</source>
+        <translation>Address</translation>
+    </message>
+    <message>
+        <source>写入</source>
+        <translation>Write</translation>
+    </message>
+    <message>
+        <source>写入 HEX 数据，可回读校验。</source>
+        <translation>Write HEX data; read back to verify it.</translation>
+    </message>
+    <message>
+        <source>写入字节，HEX 格式，如：00 10 20 30</source>
+        <translation>Bytes to write, HEX, e.g. 00 10 20 30</translation>
+    </message>
+    <message>
+        <source>分块与节奏</source>
+        <translation>Chunking</translation>
+    </message>
+    <message>
+        <source>切分方式</source>
+        <translation>Split mode</translation>
+    </message>
+    <message>
+        <source>匹配条件</source>
+        <translation>Match</translation>
+    </message>
+    <message>
+        <source>发送侧的换行、编码、校验与附加校验；回车解析、发送历史与定时发送。</source>
+        <translation>Send-side line ending, encoding, checksum and appending; Enter parsing, history and timed sending.</translation>
+    </message>
+    <message>
+        <source>发送行为</source>
+        <translation>Send behaviour</translation>
+    </message>
+    <message>
+        <source>发送选中报文、批量发送或删除。</source>
+        <translation>Send the selection, send in batch, or delete.</translation>
+    </message>
+    <message>
+        <source>可在编辑器里直接改，或载入/保存/插入示例。</source>
+        <translation>Edit here directly, or load / save / insert the example.</translation>
+    </message>
+    <message>
+        <source>名称/分组/备注用于在列表中识别这条报文。</source>
+        <translation>Name, group and note identify the packet in the list.</translation>
+    </message>
+    <message>
+        <source>名称用于列表识别；只有启用后才会参与匹配。</source>
+        <translation>The name identifies the rule; only enabled rules are matched.</translation>
+    </message>
+    <message>
+        <source>启用后收发按模板拆分与校验；点“编辑协议”调整帧结构。</source>
+        <translation>Once enabled, traffic is split and verified by the template; use Edit protocol to change the frame layout.</translation>
+    </message>
+    <message>
+        <source>响应判定</source>
+        <translation>Response check</translation>
+    </message>
+    <message>
+        <source>回复什么、以什么模式与换行发送，以及延时多久回复。</source>
+        <translation>What to reply, in which mode and line ending, and after how long.</translation>
+    </message>
+    <message>
+        <source>在末尾自动追加校验码；跳过字节用于帧头/尾不参与校验。</source>
+        <translation>Append the checksum at the end; skipped bytes leave the frame head/tail out of it.</translation>
+    </message>
+    <message>
+        <source>基本信息</source>
+        <translation>Basics</translation>
+    </message>
+    <message>
+        <source>填地址与字节数，从目标内存读出 HEX。</source>
+        <translation>Enter an address and byte count to read HEX from the target.</translation>
+    </message>
+    <message>
+        <source>多步自动流程：依次发送指令、按预期响应判断成败，可循环并导出结果。</source>
+        <translation>Multi-step automation: send commands in order, judge each by its expected response, loop and export results.</translation>
+    </message>
+    <message>
+        <source>定义帧结构（帧头、长度、校验、帧尾），收发按模板拆分与校验。</source>
+        <translation>Define the frame layout (head, length, checksum, tail); traffic is split and verified by it.</translation>
+    </message>
+    <message>
+        <source>定时与历史</source>
+        <translation>Timed &amp; History</translation>
+    </message>
+    <message>
+        <source>定时循环发送与发送历史回填。</source>
+        <translation>Timed loop sending and history recall.</translation>
+    </message>
+    <message>
+        <source>寄存器起始地址与数量；写寄存器时在下面填数值。</source>
+        <translation>Register start address and count; fill the values below when writing.</translation>
+    </message>
+    <message>
+        <source>导入导出</source>
+        <translation>Import / Export</translation>
+    </message>
+    <message>
+        <source>工具箱：接收/发送设置、协议模板、Modbus、常用包、宏命令、脚本、自动应答、文件发送</source>
+        <translation>Toolbox: receive/send settings, protocol templates, Modbus, packets, macros, scripts, auto reply, file sending</translation>
+    </message>
+    <message>
+        <source>帧尾/边界</source>
+        <translation>Tail / boundary</translation>
+    </message>
+    <message>
+        <source>循环次数、失败是否中止，以及运行/停止/导出结果。</source>
+        <translation>Loop count, abort on failure, and run / stop / export results.</translation>
+    </message>
+    <message>
+        <source>把常用报文存成列表：分组、快捷键、批量发送、JSON 导入导出。</source>
+        <translation>Keep frequent frames as a list: groups, hotkeys, batch send, JSON import/export.</translation>
+    </message>
+    <message>
+        <source>把连续的字节流切成一条条记录：按帧尾等边界、固定长度或静默超时。</source>
+        <translation>Cut the byte stream into records: by a tail/boundary, a fixed length, or a silence timeout.</translation>
+    </message>
+    <message>
+        <source>报文列表</source>
+        <translation>Packet list</translation>
+    </message>
+    <message>
+        <source>按块长与间隔把文件分包发送，适合固件/大文件传输。</source>
+        <translation>Send a file in chunks with an interval; suited to firmware and large transfers.</translation>
+    </message>
+    <message>
+        <source>按块长拆包、按间隔发送，适合固件升级等大文件传输。</source>
+        <translation>Split into chunks and pace them out; suited to firmware updates and large files.</translation>
+    </message>
+    <message>
+        <source>按预期响应判断该步成败；超时与延时单位为毫秒。</source>
+        <translation>Judge the step by its expected response; timeout and delay are in milliseconds.</translation>
+    </message>
+    <message>
+        <source>换行与编码决定发送内容如何变成字节。</source>
+        <translation>Line ending and encoding decide how the send text becomes bytes.</translation>
+    </message>
+    <message>
+        <source>接收与保存</source>
+        <translation>Receive &amp; Save</translation>
+    </message>
+    <message>
+        <source>接收内容在终端里的解析方式；显示开关与保存导出在左侧栏。</source>
+        <translation>How received bytes are parsed in the terminal; the display switches, saving and exports are in the sidebar.</translation>
+    </message>
+    <message>
+        <source>接收内容如何解析：显示模式、编码与断帧规则。显示开关、保存与导出在左侧栏。</source>
+        <translation>How received data is parsed: display mode, encoding and frame splitting. Display switches, saving and exports live in the sidebar.</translation>
+    </message>
+    <message>
+        <source>收到什么内容时触发这条规则。</source>
+        <translation>What received content triggers this rule.</translation>
+    </message>
+    <message>
+        <source>收到匹配内容时自动回复：多条规则、排序、可选延时。</source>
+        <translation>Reply automatically when content matches: multiple rules, ordering, optional delay.</translation>
+    </message>
+    <message>
+        <source>数据</source>
+        <translation>Data</translation>
+    </message>
+    <message>
+        <source>新建或删除规则。</source>
+        <translation>Add or remove rules.</translation>
+    </message>
+    <message>
+        <source>日志格式</source>
+        <translation>Log format</translation>
+    </message>
+    <message>
+        <source>日志滚动</source>
+        <translation>Log rollover</translation>
+    </message>
+    <message>
+        <source>显示</source>
+        <translation>Display</translation>
+    </message>
+    <message>
+        <source>模式、换行与报文内容；快捷键可在任意界面直接发送。</source>
+        <translation>Mode, line ending and payload; the hotkey sends it from anywhere.</translation>
+    </message>
+    <message>
+        <source>步骤内容</source>
+        <translation>Step content</translation>
+    </message>
+    <message>
+        <source>步骤列表</source>
+        <translation>Step list</translation>
+    </message>
+    <message>
+        <source>每一步要发送什么：模式与换行。</source>
+        <translation>What each step sends: mode and line ending.</translation>
+    </message>
+    <message>
+        <source>流程与运行</source>
+        <translation>Sequence &amp; Run</translation>
+    </message>
+    <message>
+        <source>清空接收区</source>
+        <translation>Clear receive</translation>
+    </message>
+    <message>
+        <source>生成请求帧并发送到当前连接。</source>
+        <translation>Build the request frame and send it over the current link.</translation>
+    </message>
+    <message>
+        <source>用脚本驱动收发：加载脚本、运行/停止，日志显示在下方。</source>
+        <translation>Drive the link with a script: load it, run/stop, and read the log below.</translation>
+    </message>
+    <message>
+        <source>脚本内容</source>
+        <translation>Script</translation>
+    </message>
+    <message>
+        <source>脚本输出与错误显示在这里。</source>
+        <translation>Script output and errors appear here.</translation>
+    </message>
+    <message>
+        <source>规则</source>
+        <translation>Rule</translation>
+    </message>
+    <message>
+        <source>规则列表</source>
+        <translation>Rule list</translation>
+    </message>
+    <message>
+        <source>规则操作</source>
+        <translation>Rule actions</translation>
+    </message>
+    <message>
+        <source>计数清零</source>
+        <translation>Reset counters</translation>
+    </message>
+    <message>
+        <source>读取</source>
+        <translation>Read</translation>
+    </message>
+    <message>
+        <source>运行或停止脚本。</source>
+        <translation>Run or stop the script.</translation>
+    </message>
+    <message>
+        <source>选中后可用下方按钮编辑、排序或发送。</source>
+        <translation>Select one, then edit, reorder or send it with the buttons below.</translation>
+    </message>
+    <message>
+        <source>选择要发送的文件。</source>
+        <translation>Pick the file to send.</translation>
+    </message>
+    <message>
+        <source>通过 J-Link 读写目标内存：填地址与字节数读取，或写 HEX 数据并校验。</source>
+        <translation>Read/write target memory over J-Link: enter an address and length to read, or write HEX data and verify.</translation>
+    </message>
+    <message>
+        <source>静默超时</source>
+        <translation>Silence timeout</translation>
+    </message>
+    <message>
+        <source>选择与启用</source>
+        <translation>Select &amp; enable</translation>
+    </message>
+    <message>
+        <source>把接收记录持续写入文件；超过滚动上限自动换新文件。</source>
+        <translation>Keep writing received records to a file; roll to a new file past the rollover limit.</translation>
+    </message>
 </context>
 <context>
     <name>FluentQt::RealtimePlotWidget</name>

@@ -3,6 +3,7 @@
 #include "app/core/app_i18n.h"
 
 #include <FluentQtWidgets/Views/ItemViews.h>
+#include <FluentQtWidgets/Widgets/Label.h>
 #include <FluentQtWidgets/Widgets/ScrollArea.h>
 
 #include <QtWidgets/QFrame>
@@ -35,6 +36,21 @@ ToolboxWindow::ToolboxWindow(QWidget *parent) : QWidget(parent, Qt::Window)
     m_list->setBorderVisible(false);
     root->addWidget(m_list);
 
+    auto *rightColumn = new QWidget(this);
+    auto *rightLayout = new QVBoxLayout(rightColumn);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(6);
+
+    m_titleLabel = new SubtitleLabel(QString(), rightColumn);
+    m_titleLabel->setObjectName(QStringLiteral("toolboxToolTitle"));
+    rightLayout->addWidget(m_titleLabel);
+
+    m_descriptionLabel = new CaptionLabel(QString(), rightColumn);
+    m_descriptionLabel->setObjectName(QStringLiteral("toolboxToolDescription"));
+    m_descriptionLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
+    m_descriptionLabel->setWordWrap(true);
+    rightLayout->addWidget(m_descriptionLabel);
+
     m_scroll = new ScrollArea(this);
     m_scroll->setObjectName(QStringLiteral("toolboxScrollArea"));
     m_scroll->setFrameShape(QFrame::NoFrame);
@@ -48,7 +64,8 @@ ToolboxWindow::ToolboxWindow(QWidget *parent) : QWidget(parent, Qt::Window)
     m_hostLayout->setSpacing(0);
     m_scroll->setWidget(m_host);
     m_scroll->setWidgetResizable(true);
-    root->addWidget(m_scroll, 1);
+    rightLayout->addWidget(m_scroll, 1);
+    root->addWidget(rightColumn, 1);
 
     connect(m_list, &ListWidget::currentRowChanged, this, [this](int row) {
         const QString key = m_keyByRow.value(row);
@@ -58,11 +75,14 @@ ToolboxWindow::ToolboxWindow(QWidget *parent) : QWidget(parent, Qt::Window)
     });
 }
 
-void ToolboxWindow::addTool(const QString &key, const QString &title, FluentIcon toolIcon, QWidget *card)
+void ToolboxWindow::addTool(const QString &key, const QString &title, const QString &description,
+                          FluentIcon toolIcon, QWidget *card)
 {
     if (!card || m_pages.contains(key)) {
         return;
     }
+    m_titles.insert(key, title);
+    m_descriptions.insert(key, description);
 
     auto *item = new QListWidgetItem(icon(toolIcon), title);
     item->setSizeHint(QSize(ToolListWidth - 16, 40));
@@ -76,6 +96,16 @@ void ToolboxWindow::addTool(const QString &key, const QString &title, FluentIcon
     m_hostLayout->addWidget(card);
 }
 
+void ToolboxWindow::updateHeader()
+{
+    if (m_titleLabel) {
+        m_titleLabel->setText(m_titles.value(m_currentKey));
+    }
+    if (m_descriptionLabel) {
+        m_descriptionLabel->setText(m_descriptions.value(m_currentKey));
+    }
+}
+
 void ToolboxWindow::switchTool(const QString &key)
 {
     QWidget *page = m_pages.value(key);
@@ -84,6 +114,7 @@ void ToolboxWindow::switchTool(const QString &key)
     }
     const bool changed = m_currentKey != key;
     m_currentKey = key;
+    updateHeader();
     for (auto it = m_pages.constBegin(); it != m_pages.constEnd(); ++it) {
         it.value()->setVisible(it.key() == key);
     }

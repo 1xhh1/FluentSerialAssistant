@@ -85,6 +85,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
 
     QWidget *createWorkbench();
     QWidget *createConnectionSection();
+    QWidget *createQuickReceiveSection();
     QWidget *createReceiveSettingsSection();
     QWidget *createProtocolTemplateSection();
     QWidget *createSendSettingsSection();

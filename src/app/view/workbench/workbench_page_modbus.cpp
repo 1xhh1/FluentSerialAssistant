@@ -27,6 +27,7 @@ QWidget *WorkbenchPage::createModbusSection()
     addFormRow(root, AppI18n::text("功能"), m_modbusFunctionCombo);
 
     m_modbusAddressEdit = createNumberEdit(section, 0, 0, 65535);
+    addGroupHeading(root, AppI18n::text("数据"), AppI18n::text("寄存器起始地址与数量；写寄存器时在下面填数值。"));
     addFormRow(root, AppI18n::text("地址"), m_modbusAddressEdit);
 
     m_modbusQuantityEdit = createNumberEdit(section, 1, 1, 2000);
@@ -40,6 +41,7 @@ QWidget *WorkbenchPage::createModbusSection()
     m_modbusValuesEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     root->addWidget(m_modbusValuesEdit);
 
+    addGroupHeading(root, AppI18n::text("发送"), AppI18n::text("生成请求帧并发送到当前连接。"));
     auto *actionRow = new QHBoxLayout;
     actionRow->setSpacing(8);
     m_modbusFillButton = new PushButton(icon(FluentIcon::Edit), AppI18n::text("填入发送"), section);
