@@ -417,8 +417,12 @@ class WorkbenchReliabilityTest : public QObject
     {
         QTemporaryDir folder;
         QVERIFY(folder.isValid());
+        // The destination comes from the file dialog and is remembered; the
+        // capture must not create or truncate anything before the link opens.
+        const QString chosen = QDir(folder.path()).filePath(QStringLiteral("chosen_capture.bin"));
         AppSettings settings;
         settings.setValue(QStringLiteral("receive/saveToFile"), true);
+        settings.setValue(QStringLiteral("receive/saveFile"), chosen);
         settings.setValue(QStringLiteral("export/folder"), folder.path());
         settings.sync();
         const auto files = [&folder]() { return QDir(folder.path()).entryList(QDir::Files); };
@@ -437,7 +441,8 @@ class WorkbenchReliabilityTest : public QObject
         page.m_connectButton->click();
         QVERIFY(!page.m_link.isOpen());
         QCOMPARE(files().size(), 1);
-        QFile capture(QDir(folder.path()).filePath(files().first()));
+        QCOMPARE(files().first(), QStringLiteral("chosen_capture.bin"));
+        QFile capture(chosen);
         QVERIFY(capture.open(QIODevice::ReadOnly));
         QCOMPARE(capture.readAll(), QByteArrayLiteral("captured"));
     }

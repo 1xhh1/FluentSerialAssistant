@@ -301,7 +301,7 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     m_saveReceiveCheck->setMinimumWidth(0);
     m_saveReceiveCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     AppUi::setFluentToolTip(m_saveReceiveCheck,
-                            AppI18n::text("连接后把收到的原始字节持续写入导出目录下的 serial_rx_时间.bin"));
+                            AppI18n::text("勾选时选择保存文件；收到的原始字节会持续写入该文件"));
     saveReceiveLayout->addWidget(m_saveReceiveCheck);
     saveReceiveLayout->addStretch(1);
     root->addWidget(saveReceiveRow);

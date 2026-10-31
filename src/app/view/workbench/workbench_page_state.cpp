@@ -25,7 +25,7 @@ void WorkbenchPage::setupSerialSignals()
         updateRateStats();
         updateAutoLogStatus();
         if (m_saveReceiveCheck->isChecked()) {
-            updateReceiveCapture(true);
+            ensureReceiveCaptureOpen();
         }
         showSuccess(AppI18n::text("连接成功"), AppI18n::text("%1 已打开").arg(portName));
     });

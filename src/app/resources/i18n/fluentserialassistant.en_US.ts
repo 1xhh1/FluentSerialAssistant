@@ -3737,6 +3737,30 @@ Installation log: %2</translation>
         <source>清空接收区显示与计数，不影响已保存的文件</source>
         <translation>Clear the receive area and counters; saved files are untouched</translation>
     </message>
+    <message>
+        <source>选择接收保存文件</source>
+        <translation>Choose where to save received data</translation>
+    </message>
+    <message>
+        <source>BIN 文件 (*.bin);;所有文件 (*)</source>
+        <translation>BIN files (*.bin);;All files (*)</translation>
+    </message>
+    <message>
+        <source>保存中：%1</source>
+        <translation>Saving: %1</translation>
+    </message>
+    <message>
+        <source>连接后开始保存：%1</source>
+        <translation>Saves on connect: %1</translation>
+    </message>
+    <message>
+        <source>接收保存已启用，尚未选择文件</source>
+        <translation>Receive saving is on, but no file is chosen</translation>
+    </message>
+    <message>
+        <source>勾选时选择保存文件；收到的原始字节会持续写入该文件</source>
+        <translation>Picking this opens a file dialog; the raw received bytes are appended to that file</translation>
+    </message>
 </context>
 <context>
     <name>FluentQt::RealtimePlotWidget</name>

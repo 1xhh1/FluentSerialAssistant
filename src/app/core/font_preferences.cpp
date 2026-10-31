@@ -18,7 +18,11 @@
 
 namespace {
 
-constexpr int DefaultTerminalFontPointSize = 14;
+constexpr int DefaultTerminalFontPointSize = 11;
+// 14pt was the original default; a log view at that size is uncomfortably
+// large, so a stored 14 is treated as "never chosen" and follows the new
+// default. Any other size the user picked is kept as is.
+constexpr int LegacyDefaultTerminalFontPointSize = 14;
 constexpr int MinTerminalFontPointSize = 8;
 constexpr int MaxTerminalFontPointSize = 28;
 
@@ -253,9 +257,12 @@ QString currentTerminalFontFamily()
 int currentTerminalFontPointSize()
 {
     AppSettings settings;
-    return qBound(MinTerminalFontPointSize,
-                  settings.value(QStringLiteral("terminal/fontPointSize"), DefaultTerminalFontPointSize).toInt(),
-                  MaxTerminalFontPointSize);
+    const QVariant stored = settings.value(QStringLiteral("terminal/fontPointSize"), DefaultTerminalFontPointSize);
+    int pointSize = stored.toInt();
+    if (stored.toInt() == LegacyDefaultTerminalFontPointSize) {
+        pointSize = DefaultTerminalFontPointSize;
+    }
+    return qBound(MinTerminalFontPointSize, pointSize, MaxTerminalFontPointSize);
 }
 
 void loadCustomFonts()

@@ -277,9 +277,13 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
     AppSettings settings;
     settings.setValue(QStringLiteral("receive/saveToFile"), enabled);
 
-    // Restoring the option at startup must not create an empty file; the
-    // connection opens it.
-    if (!enabled || !m_link.isOpen()) {
+    // Restoring the option at startup must not ask for a file; the connection
+    // resumes the saved path through ensureReceiveCaptureOpen().
+    if (!m_settingsRestored) {
+        return;
+    }
+
+    if (!enabled) {
         closeReceiveCapture();
         return;
     }
@@ -287,27 +291,68 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
         return;
     }
 
+    // The destination is chosen in a dialog, not in the sidebar.
     const QString folderPath = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
-    QDir folder(folderPath);
-    if (!folder.exists() && !folder.mkpath(QStringLiteral("."))) {
+    const QString suggestedName = QStringLiteral("serial_rx_%1.bin")
+                                      .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
+    const QString suggested = QDir(folderPath).filePath(suggestedName);
+    const QString path = QFileDialog::getSaveFileName(window(), AppI18n::text("选择接收保存文件"), suggested,
+                                                     AppI18n::text("BIN 文件 (*.bin);;所有文件 (*)"));
+    if (path.isEmpty()) {
+        // Cancelled: put the switch back instead of failing halfway.
+        settings.setValue(QStringLiteral("receive/saveToFile"), false);
         const QSignalBlocker blocker(m_saveReceiveCheck);
         m_saveReceiveCheck->setChecked(false);
-        showError(AppI18n::text("接收保存失败"), AppI18n::text("无法创建目录：%1").arg(folderPath));
+        closeReceiveCapture();
         return;
     }
 
-    const QString fileName = QStringLiteral("serial_rx_%1.bin")
-                                 .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
-    const QString path = folder.filePath(fileName);
+    settings.setValue(QStringLiteral("receive/saveFile"), path);
+    settings.setValue(QStringLiteral("export/folder"), QFileInfo(path).absolutePath());
+    ensureReceiveCaptureOpen();
+}
+
+void WorkbenchPage::ensureReceiveCaptureOpen()
+{
+    // Never opens a dialog: called from the connect path and from the receive
+    // path, where asking for a file would interrupt the stream.
+    if (m_receiveCaptureFile.isOpen()) {
+        return;
+    }
+    AppSettings settings;
+    if (!settings.value(QStringLiteral("receive/saveToFile"), false).toBool() || !m_link.isOpen()) {
+        if (m_receiveCaptureLabel) {
+            updateReceiveCaptureLabel();
+        }
+        return;
+    }
+    const QString path = settings.value(QStringLiteral("receive/saveFile")).toString();
+    if (path.isEmpty()) {
+        if (m_receiveCaptureLabel) {
+            updateReceiveCaptureLabel();
+        }
+        return;
+    }
+
+    QDir folder = QFileInfo(path).absoluteDir();
+    if (!folder.exists() && !folder.mkpath(QStringLiteral("."))) {
+        const QSignalBlocker blocker(m_saveReceiveCheck);
+        m_saveReceiveCheck->setChecked(false);
+        settings.setValue(QStringLiteral("receive/saveToFile"), false);
+        showError(AppI18n::text("接收保存失败"), AppI18n::text("无法创建目录：%1").arg(folder.absolutePath()));
+        return;
+    }
+
     m_receiveCaptureFile.setFileName(path);
     if (!m_receiveCaptureFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
         const QSignalBlocker blocker(m_saveReceiveCheck);
         m_saveReceiveCheck->setChecked(false);
+        settings.setValue(QStringLiteral("receive/saveToFile"), false);
         showError(AppI18n::text("接收保存失败"), m_receiveCaptureFile.errorString());
         return;
     }
 
-    m_receiveCaptureLabel->setText(AppI18n::text("保存至：%1").arg(path));
+    updateReceiveCaptureLabel();
 }
 
 void WorkbenchPage::closeReceiveCapture()
@@ -315,11 +360,31 @@ void WorkbenchPage::closeReceiveCapture()
     if (m_receiveCaptureFile.isOpen()) {
         m_receiveCaptureFile.close();
     }
-    if (m_receiveCaptureLabel) {
-        m_receiveCaptureLabel->setText(m_saveReceiveCheck && m_saveReceiveCheck->isChecked()
-                                           ? AppI18n::text("连接后继续保存接收")
-                                           : AppI18n::text("接收保存未启用"));
+    updateReceiveCaptureLabel();
+}
+
+void WorkbenchPage::updateReceiveCaptureLabel()
+{
+    if (!m_receiveCaptureLabel) {
+        return;
     }
+    AppSettings settings;
+    const bool enabled = m_saveReceiveCheck && m_saveReceiveCheck->isChecked();
+    const QString path = settings.value(QStringLiteral("receive/saveFile")).toString();
+    m_receiveCaptureLabel->setAccessibleDescription(path);
+    if (!enabled) {
+        m_receiveCaptureLabel->setText(AppI18n::text("接收保存未启用"));
+        return;
+    }
+    if (path.isEmpty()) {
+        m_receiveCaptureLabel->setText(AppI18n::text("接收保存已启用，尚未选择文件"));
+        return;
+    }
+    // Only the file name is shown; the full path stays in the tooltip.
+    const QString name = QFileInfo(path).fileName();
+    m_receiveCaptureLabel->setText(m_receiveCaptureFile.isOpen() ? AppI18n::text("保存中：%1").arg(name)
+                                                                : AppI18n::text("连接后开始保存：%1").arg(name));
+    m_receiveCaptureLabel->setToolTip(path);
 }
 
 void WorkbenchPage::browseSendFile()

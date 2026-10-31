@@ -423,7 +423,7 @@ void WorkbenchPage::recordReceivedBytes(const QByteArray &data)
     m_rxCount += data.size();
     if (m_saveReceiveCheck && m_saveReceiveCheck->isChecked()) {
         if (!m_receiveCaptureFile.isOpen()) {
-            updateReceiveCapture(true);
+            ensureReceiveCaptureOpen();
         }
         if (m_receiveCaptureFile.isOpen()) {
             m_receiveCaptureFile.write(data);
@@ -586,7 +586,7 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
         m_rxCount += data.size();
         if (m_saveReceiveCheck && m_saveReceiveCheck->isChecked()) {
             if (!m_receiveCaptureFile.isOpen()) {
-                updateReceiveCapture(true);
+                ensureReceiveCaptureOpen();
             }
             if (m_receiveCaptureFile.isOpen()) {
                 m_receiveCaptureFile.write(data);

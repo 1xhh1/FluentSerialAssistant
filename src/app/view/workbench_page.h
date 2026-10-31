@@ -410,6 +410,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void reloadSharedList(SharedList list);
     void exportRecords(ExportFormat format);
     void updateReceiveCapture(bool enabled);
+    void ensureReceiveCaptureOpen();
+    void updateReceiveCaptureLabel();
     void closeReceiveCapture();
     void updateAutoLog(bool enabled);
     void resetAutoLogSession();
