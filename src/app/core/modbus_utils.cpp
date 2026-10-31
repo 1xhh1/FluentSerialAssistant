@@ -172,6 +172,28 @@ QString crcText(bool valid) { return valid ? AppI18n::text("CRC 正确") : AppI1
 // Upper-case only the code; the translated text around it keeps its case.
 QString hexByte(quint8 value) { return QStringLiteral("%1").arg(value, 2, 16, QLatin1Char('0')).toUpper(); }
 
+QString lrcText(bool valid) { return valid ? AppI18n::text("LRC 正确") : AppI18n::text("LRC 错误"); }
+
+QString checksumText(bool valid, AppModbus::TransportMode mode)
+{
+    return mode == AppModbus::TransportMode::Ascii ? lrcText(valid) : crcText(valid);
+}
+
+// Appends the transport checksum: CRC16 bytes for RTU, or wraps the PDU into
+// a ':' + hex-ASCII + LRC + CRLF frame for ASCII.
+QByteArray finalizeFrame(QByteArray frame, AppModbus::TransportMode mode)
+{
+    if (mode != AppModbus::TransportMode::Ascii) {
+        return appendModbusCrc(frame);
+    }
+    quint8 sum = 0;
+    for (char byte : frame) {
+        sum += static_cast<quint8>(byte);
+    }
+    const quint8 lrc = static_cast<quint8>(-sum);
+    return QByteArrayLiteral(":") + frame.toHex().toUpper() + hexByte(lrc).toLatin1() + QByteArrayLiteral("\r\n");
+}
+
 } // namespace
 
 namespace AppModbus {
@@ -258,7 +280,7 @@ BuildResult buildRequest(const RequestConfig &config)
 
     if (!function.write) {
         appendU16(frame, quantity);
-        frame = appendModbusCrc(frame);
+        frame = finalizeFrame(frame, config.mode);
         BuildResult result;
         result.ok = true;
         result.frame = frame;
@@ -311,7 +333,7 @@ BuildResult buildRequest(const RequestConfig &config)
         }
     }
 
-    frame = appendModbusCrc(frame);
+    frame = finalizeFrame(frame, config.mode);
     BuildResult result;
     result.ok = true;
     result.frame = frame;
@@ -320,41 +342,39 @@ BuildResult buildRequest(const RequestConfig &config)
     return result;
 }
 
-ParseResult parseResponse(const QByteArray &frame)
+// Parses a checksum-free PDU (slave, function and data bytes) shared by both transports.
+ParseResult parsePduFrame(const QByteArray &pdu, bool checksumValid, TransportMode mode)
 {
     ParseResult result;
-    if (frame.size() < 5) {
+    result.mode = mode;
+    result.crcValid = checksumValid;
+    if (pdu.isEmpty()) {
         return result;
     }
 
-    const QByteArray payload = frame.left(frame.size() - 2);
-    const QByteArray expectedCrc =
-        AppChecksum::calculate(payload, QStringLiteral("crc16-modbus"), AppChecksum::ByteOrder::LittleEndian).bytes;
-    result.crcValid = expectedCrc == frame.right(2);
-
-    const quint8 slave = static_cast<unsigned char>(frame.at(0));
-    const quint8 function = static_cast<unsigned char>(frame.at(1));
+    const quint8 slave = static_cast<unsigned char>(pdu.at(0));
+    const quint8 function = static_cast<unsigned char>(pdu.at(1));
     const quint8 baseFunction = function & 0x7F;
     const bool knownFunction = baseFunction == 0x01 || baseFunction == 0x02 || baseFunction == 0x03 ||
                                baseFunction == 0x04 || baseFunction == 0x05 || baseFunction == 0x06 ||
                                baseFunction == 0x0F || baseFunction == 0x10;
-    if (!knownFunction && !result.crcValid) {
+    if (!knownFunction && !checksumValid) {
         return result;
     }
 
     result.recognized = true;
     if ((function & 0x80) != 0) {
-        const quint8 exceptionCode = frame.size() >= 5 ? static_cast<unsigned char>(frame.at(2)) : 0;
+        const quint8 exceptionCode = pdu.size() >= 3 ? static_cast<unsigned char>(pdu.at(2)) : 0;
         result.summary = AppI18n::text("Modbus 异常 · 站号 %1 · 功能 0x%2 · %3 · %4")
                              .arg(slave)
                              .arg(hexByte(function))
-                             .arg(exceptionText(exceptionCode), crcText(result.crcValid));
+                             .arg(exceptionText(exceptionCode), checksumText(checksumValid, mode));
         return result;
     }
 
-    if (function >= 0x01 && function <= 0x04 && frame.size() >= 5) {
-        const quint8 byteCount = static_cast<unsigned char>(frame.at(2));
-        const QByteArray data = frame.mid(3, qMin<int>(byteCount, frame.size() - 5));
+    if (function >= 0x01 && function <= 0x04 && pdu.size() >= 3) {
+        const quint8 byteCount = static_cast<unsigned char>(pdu.at(2));
+        const QByteArray data = pdu.mid(3, qMin<int>(byteCount, pdu.size() - 3));
         QString detail = bytesToHex(data);
         if ((function == 0x03 || function == 0x04) && data.size() % 2 == 0) {
             QStringList registers;
@@ -366,27 +386,61 @@ ParseResult parseResponse(const QByteArray &frame)
         result.summary = AppI18n::text("Modbus 响应 · 站号 %1 · 功能 0x%2 · 数据 %3 · %4")
                              .arg(slave)
                              .arg(hexByte(function))
-                             .arg(detail.isEmpty() ? QStringLiteral("-") : detail, crcText(result.crcValid));
+                             .arg(detail.isEmpty() ? QStringLiteral("-") : detail,
+                                  checksumText(checksumValid, mode));
         return result;
     }
 
-    if ((function == 0x05 || function == 0x06 || function == 0x0F || function == 0x10) && frame.size() >= 8) {
-        const quint16 address = readU16(frame, 2);
-        const quint16 valueOrQuantity = readU16(frame, 4);
+    if ((function == 0x05 || function == 0x06 || function == 0x0F || function == 0x10) && pdu.size() >= 6) {
+        const quint16 address = readU16(pdu, 2);
+        const quint16 valueOrQuantity = readU16(pdu, 4);
         result.summary = AppI18n::text("Modbus 响应 · 站号 %1 · 功能 0x%2 · 地址 %3 · 值/数量 %4 · %5")
                              .arg(slave)
                              .arg(hexByte(function))
                              .arg(address)
                              .arg(valueOrQuantity)
-                             .arg(crcText(result.crcValid));
+                             .arg(checksumText(checksumValid, mode));
         return result;
     }
 
     result.summary = AppI18n::text("Modbus 响应 · 站号 %1 · 功能 0x%2 · %3")
                          .arg(slave)
                          .arg(hexByte(function))
-                         .arg(crcText(result.crcValid));
+                         .arg(checksumText(checksumValid, mode));
     return result;
+}
+
+ParseResult parseResponse(const QByteArray &frame)
+{
+    if (!frame.isEmpty() && frame.at(0) == ':') {
+        QByteArray hex = frame.mid(1);
+        while (!hex.isEmpty() && (hex.endsWith('\n') || hex.endsWith('\r'))) {
+            hex.chop(1);
+        }
+        if (hex.size() >= 6 && hex.size() % 2 == 0) {
+            const QByteArray decoded = QByteArray::fromHex(hex);
+            quint8 sum = 0;
+            for (char byte : decoded) {
+                sum += static_cast<quint8>(byte);
+            }
+            const bool lrcValid = sum == 0;
+            ParseResult result = parsePduFrame(decoded.left(decoded.size() - 1), lrcValid, TransportMode::Ascii);
+            result.mode = TransportMode::Ascii;
+            result.crcValid = lrcValid;
+            return result;
+        }
+        return ParseResult{};
+    }
+
+    if (frame.size() < 5) {
+        return ParseResult{};
+    }
+
+    const QByteArray payload = frame.left(frame.size() - 2);
+    const QByteArray expectedCrc =
+        AppChecksum::calculate(payload, QStringLiteral("crc16-modbus"), AppChecksum::ByteOrder::LittleEndian).bytes;
+    const bool crcValid = expectedCrc == frame.right(2);
+    return parsePduFrame(payload, crcValid, TransportMode::Rtu);
 }
 
 } // namespace AppModbus

@@ -2,6 +2,9 @@
 #include "app/view/protocol_template_window.h"
 #include "app/view/workbench/workbench_page_internal.h"
 
+#include <QtCore/QRegularExpression>
+#include <QtGui/QRegularExpressionValidator>
+
 using namespace FluentQt;
 using namespace WorkbenchPagePrivate;
 
@@ -10,6 +13,20 @@ QWidget *WorkbenchPage::createConnectionSection()
     auto *section = new ExpandSettingCard(FluentIcon::Connect, AppI18n::text("连接"), QString(), this);
     auto *root = cardBody(section);
 
+    m_linkTypeCombo = new ComboBox(section);
+    makeCompactControl(m_linkTypeCombo);
+    m_linkTypeCombo->addItem(AppI18n::text("串口"), QIcon(), QStringLiteral("serial"));
+    m_linkTypeCombo->addItem(QStringLiteral("TCP ") + AppI18n::text("服务器"), QIcon(), QStringLiteral("tcp-server"));
+    m_linkTypeCombo->addItem(QStringLiteral("TCP ") + AppI18n::text("客户端"), QIcon(), QStringLiteral("tcp-client"));
+    m_linkTypeCombo->addItem(QStringLiteral("UDP"), QIcon(), QStringLiteral("udp"));
+    m_linkTypeCombo->setCurrentIndex(0);
+    addFormRow(root, AppI18n::text("传输"), m_linkTypeCombo);
+
+    m_serialLinkRows = new QWidget(section);
+    auto *serialLayout = new QVBoxLayout(m_serialLinkRows);
+    serialLayout->setContentsMargins(0, 0, 0, 0);
+    serialLayout->setSpacing(6);
+
     m_portCombo = new ComboBox(section);
     makeCompactControl(m_portCombo);
     m_portCombo->setPlaceholderText(AppI18n::text("选择端口"));
@@ -17,19 +34,19 @@ QWidget *WorkbenchPage::createConnectionSection()
     AppUi::setFluentToolTip(m_refreshButton, AppI18n::text("刷新端口"));
     m_refreshButton->setIconSize(QSize(16, 16));
     m_refreshButton->setFixedSize(CompactControlHeight, CompactControlHeight);
-    addFormRow(root, AppI18n::text("端口"), m_portCombo, m_refreshButton);
+    addFormRow(serialLayout, AppI18n::text("端口"), m_portCombo, m_refreshButton);
 
     m_baudCombo = new EditableComboBox(section);
     makeCompactControl(m_baudCombo);
     m_baudCombo->addItems(commonBaudRateTexts());
     m_baudCombo->setCurrentText(QStringLiteral("115200"));
-    addFormRow(root, AppI18n::text("波特率"), m_baudCombo);
+    addFormRow(serialLayout, AppI18n::text("波特率"), m_baudCombo);
 
     m_dataBitsCombo = new ComboBox(section);
     makeCompactControl(m_dataBitsCombo);
     m_dataBitsCombo->addItems({QStringLiteral("5"), QStringLiteral("6"), QStringLiteral("7"), QStringLiteral("8")});
     m_dataBitsCombo->setCurrentText(QStringLiteral("8"));
-    addFormRow(root, AppI18n::text("数据位"), m_dataBitsCombo);
+    addFormRow(serialLayout, AppI18n::text("数据位"), m_dataBitsCombo);
 
     m_parityCombo = new ComboBox(section);
     makeCompactControl(m_parityCombo);
@@ -39,7 +56,7 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_parityCombo->addItem(AppI18n::text("空格"), QIcon(), static_cast<int>(QSerialPort::SpaceParity));
     m_parityCombo->addItem(AppI18n::text("标记"), QIcon(), static_cast<int>(QSerialPort::MarkParity));
     m_parityCombo->setCurrentIndex(0);
-    addFormRow(root, AppI18n::text("校验位"), m_parityCombo);
+    addFormRow(serialLayout, AppI18n::text("校验位"), m_parityCombo);
 
     m_stopBitsCombo = new ComboBox(section);
     makeCompactControl(m_stopBitsCombo);
@@ -47,7 +64,7 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_stopBitsCombo->addItem(AppI18n::text("1.5 停止位"), QIcon(), static_cast<int>(QSerialPort::OneAndHalfStop));
     m_stopBitsCombo->addItem(AppI18n::text("2 停止位"), QIcon(), static_cast<int>(QSerialPort::TwoStop));
     m_stopBitsCombo->setCurrentIndex(0);
-    addFormRow(root, AppI18n::text("停止位"), m_stopBitsCombo);
+    addFormRow(serialLayout, AppI18n::text("停止位"), m_stopBitsCombo);
 
     m_flowControlCombo = new ComboBox(section);
     makeCompactControl(m_flowControlCombo);
@@ -55,24 +72,55 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_flowControlCombo->addItem(AppI18n::text("硬件流控"), QIcon(), static_cast<int>(QSerialPort::HardwareControl));
     m_flowControlCombo->addItem(AppI18n::text("软件流控"), QIcon(), static_cast<int>(QSerialPort::SoftwareControl));
     m_flowControlCombo->setCurrentIndex(0);
-    addFormRow(root, AppI18n::text("流控"), m_flowControlCombo);
+    addFormRow(serialLayout, AppI18n::text("流控"), m_flowControlCombo);
 
-    root->addWidget(createCheckRow({QStringLiteral("RTS"), QStringLiteral("DTR"), AppI18n::text("启动连接")},
-                                   {&m_rtsCheck, &m_dtrCheck, &m_autoOpenCheck}, section));
+    serialLayout->addWidget(createCheckRow({QStringLiteral("RTS"), QStringLiteral("DTR"), AppI18n::text("启动连接")},
+                                           {&m_rtsCheck, &m_dtrCheck, &m_autoOpenCheck}, section));
+    root->addWidget(m_serialLinkRows);
+
+    m_networkLinkRows = new QWidget(section);
+    auto *networkLayout = new QVBoxLayout(m_networkLinkRows);
+    networkLayout->setContentsMargins(0, 0, 0, 0);
+    networkLayout->setSpacing(6);
+    m_hostEdit = new LineEdit(section);
+    m_hostEdit->setPlaceholderText(QStringLiteral("127.0.0.1"));
+    m_hostEdit->setObjectName(QStringLiteral("linkHostEdit"));
+    addFormRow(networkLayout, AppI18n::text("地址"), m_hostEdit);
+    m_portEdit = new LineEdit(section);
+    m_portEdit->setPlaceholderText(QStringLiteral("502"));
+    m_portEdit->setObjectName(QStringLiteral("linkPortEdit"));
+    m_portEdit->setValidator(
+        new QRegularExpressionValidator(QRegularExpression(QStringLiteral("\\d{1,5}")), m_portEdit));
+    addFormRow(networkLayout, AppI18n::text("端口"), m_portEdit);
+    root->addWidget(m_networkLinkRows);
 
     m_connectButton = new PrimaryPushButton(icon(FluentIcon::Connect), AppI18n::text("连接"), section);
     root->addWidget(m_connectButton);
 
+    const auto updateLinkTypeUi = [this]() {
+        const bool serial = m_linkTypeCombo->currentData().toString() == QStringLiteral("serial");
+        m_serialLinkRows->setVisible(serial);
+        m_networkLinkRows->setVisible(!serial);
+        AppSettings settings;
+        settings.setValue(QStringLiteral("link/type"), m_linkTypeCombo->currentData().toString());
+        settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
+        settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
+    };
+    connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
+    connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    connect(m_portEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    updateLinkTypeUi();
+
     connect(m_refreshButton, &ToolButton::clicked, this, &WorkbenchPage::refreshPorts);
     connect(m_connectButton, &PrimaryPushButton::clicked, this, &WorkbenchPage::onConnectClicked);
     connect(m_rtsCheck, &CheckBox::toggled, this, [this](bool checked) {
-        if (m_serial.isOpen()) {
-            m_serial.setRequestToSend(checked);
+        if (m_link.isOpen()) {
+            m_link.setRequestToSend(checked);
         }
     });
     connect(m_dtrCheck, &CheckBox::toggled, this, [this](bool checked) {
-        if (m_serial.isOpen()) {
-            m_serial.setDataTerminalReady(checked);
+        if (m_link.isOpen()) {
+            m_link.setDataTerminalReady(checked);
         }
     });
     connect(m_autoOpenCheck, &CheckBox::toggled, this, [](bool checked) {
@@ -120,6 +168,16 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     receiveOptionsGrid->addWidget(m_autoScrollCheck, 0, 1);
     receiveOptionsGrid->addWidget(m_timestampCheck, 1, 0);
     receiveOptionsGrid->addWidget(m_pauseCheck, 1, 1);
+    m_timestampFormatCombo = new ComboBox(receiveOptions);
+    m_timestampFormatCombo->setObjectName(QStringLiteral("timestampFormatCombo"));
+    m_timestampFormatCombo->addItem(AppI18n::text("时:分:秒"), QIcon(), QStringLiteral("HH:mm:ss"));
+    m_timestampFormatCombo->addItem(AppI18n::text("时:分:秒.毫秒"), QIcon(), QStringLiteral("HH:mm:ss.zzz"));
+    m_timestampFormatCombo->addItem(AppI18n::text("年/月/日 时:分:秒"), QIcon(), QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+    m_timestampFormatCombo->addItem(AppI18n::text("年/月/日 时:分:秒.毫秒"), QIcon(),
+                                    QStringLiteral("yyyy/MM/dd HH:mm:ss.zzz"));
+    makeCompactControl(m_timestampFormatCombo);
+    m_timestampFormatCombo->setEnabled(false);
+    addFormRow(root, AppI18n::text("时间戳格式"), m_timestampFormatCombo);
     root->addWidget(receiveOptions);
 
     m_autoLogFormatCombo = new ComboBox(section);
@@ -241,6 +299,14 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     connect(m_timestampCheck, &CheckBox::toggled, this, [this](bool checked) {
         AppSettings settings;
         settings.setValue(QStringLiteral("receive/timestamp"), checked);
+        if (m_timestampFormatCombo) {
+            m_timestampFormatCombo->setEnabled(checked);
+        }
+        renderTerminal();
+    });
+    connect(m_timestampFormatCombo, &ComboBox::currentIndexChanged, this, [this](int) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/timestampFormat"), terminalTimestampFormat());
         renderTerminal();
     });
     connect(m_pauseCheck, &CheckBox::toggled, this, [this](bool checked) {
@@ -401,8 +467,8 @@ QWidget *WorkbenchPage::createProtocolTemplateSection()
     m_protocolCommandOffsetEdit->setObjectName(QStringLiteral("protocolTemplateCommandOffsetEdit"));
     m_protocolCommandSizeEdit = createNumberEdit(editor, 1, 0, 256);
     m_protocolCommandSizeEdit->setObjectName(QStringLiteral("protocolTemplateCommandSizeEdit"));
-    pairedFields(commandGroup, AppI18n::text("字节偏移"), m_protocolCommandOffsetEdit,
-                 AppI18n::text("字节数"), m_protocolCommandSizeEdit);
+    pairedFields(commandGroup, AppI18n::text("字节偏移"), m_protocolCommandOffsetEdit, AppI18n::text("字节数"),
+                 m_protocolCommandSizeEdit);
 
     auto *payloadGroup = group(AppI18n::text("载荷字段"));
     m_protocolPayloadOffsetEdit = createNumberEdit(editor, 4, 0, 65535);
@@ -410,8 +476,8 @@ QWidget *WorkbenchPage::createProtocolTemplateSection()
     m_protocolPayloadLengthEdit = createNumberEdit(editor, 0, 0, 65535);
     m_protocolPayloadLengthEdit->setObjectName(QStringLiteral("protocolTemplatePayloadLengthEdit"));
     m_protocolPayloadLengthEdit->setAccessibleDescription(AppI18n::text("0 表示按长度字段自动计算"));
-    pairedFields(payloadGroup, AppI18n::text("字节偏移"), m_protocolPayloadOffsetEdit,
-                 AppI18n::text("固定长度"), m_protocolPayloadLengthEdit);
+    pairedFields(payloadGroup, AppI18n::text("字节偏移"), m_protocolPayloadOffsetEdit, AppI18n::text("固定长度"),
+                 m_protocolPayloadLengthEdit);
     auto *payloadHint = new CaptionLabel(AppI18n::text("固定长度填 0，按长度字段或剩余字节自动计算。"), editor);
     payloadHint->setWordWrap(true);
     payloadGroup->addWidget(payloadHint);
@@ -591,10 +657,12 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     sendOptionsGrid->setColumnStretch(0, 1);
     sendOptionsGrid->setColumnStretch(1, 1);
     m_hexSendCheck = new CheckBox(AppI18n::text("HEX 发送"), sendOptions);
+    m_escapeParseCheck = new CheckBox(AppI18n::text("转义符解析"), sendOptions);
+    m_escapeParseCheck->setToolTip(AppI18n::text("文本发送时解析 \\r \\n \\t \\0 \\\\ \\xHH 转义序列"));
     m_showTxCheck = new CheckBox(AppI18n::text("显示发送字符串"), sendOptions);
     m_loopCheck = new CheckBox(AppI18n::text("定时发送"), sendOptions);
     m_autoReconnectCheck = new CheckBox(AppI18n::text("自动重连"), sendOptions);
-    for (CheckBox *check : {m_hexSendCheck, m_showTxCheck, m_loopCheck, m_autoReconnectCheck}) {
+    for (CheckBox *check : {m_hexSendCheck, m_escapeParseCheck, m_showTxCheck, m_loopCheck, m_autoReconnectCheck}) {
         check->setMinimumWidth(0);
         check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     }
@@ -605,6 +673,7 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     sendOptionsGrid->addWidget(m_txColorButton, 0, 2);
     sendOptionsGrid->addWidget(m_loopCheck, 1, 0);
     sendOptionsGrid->addWidget(m_autoReconnectCheck, 1, 1);
+    sendOptionsGrid->addWidget(m_escapeParseCheck, 2, 0);
     root->addWidget(sendOptions);
 
     m_historyCombo = new ComboBox(section);
@@ -647,6 +716,10 @@ QWidget *WorkbenchPage::createSendSettingsSection()
         AppSettings settings;
         settings.setValue(QStringLiteral("send/mode"), checked ? QStringLiteral("hex") : QStringLiteral("text"));
         updateSendModeButton();
+    });
+    connect(m_escapeParseCheck, &CheckBox::toggled, this, [](bool checked) {
+        AppSettings settings;
+        settings.setValue(QStringLiteral("send/escapeParse"), checked);
     });
     connect(m_showTxCheck, &CheckBox::toggled, this, [this](bool checked) {
         AppSettings settings;
@@ -723,6 +796,13 @@ QWidget *WorkbenchPage::createPacketSection()
     m_packetPayloadEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     root->addWidget(m_packetPayloadEdit);
 
+    m_packetHotkeyEdit = new QKeySequenceEdit(section);
+    m_packetHotkeyEdit->setObjectName(QStringLiteral("packetHotkeyEdit"));
+    m_packetHotkeyEdit->setClearButtonEnabled(true);
+    m_packetHotkeyEdit->setFixedHeight(CompactControlHeight);
+    m_packetHotkeyEdit->setToolTip(AppI18n::text("按下快捷键立即发送该常用包"));
+    addFormRow(root, AppI18n::text("快捷键"), m_packetHotkeyEdit);
+
     m_packetList = new ListWidget(section);
     m_packetList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_packetList->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -755,10 +835,13 @@ QWidget *WorkbenchPage::createPacketSection()
     ioRow->setSpacing(8);
     m_packetImportButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("导入 JSON"), section);
     m_packetExportButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("导出 JSON"), section);
+    m_packetFromSendButton = new PushButton(icon(FluentIcon::Add), AppI18n::text("存为快捷包"), section);
     setButtonRowControlPolicy(m_packetImportButton);
     setButtonRowControlPolicy(m_packetExportButton);
+    setButtonRowControlPolicy(m_packetFromSendButton);
     ioRow->addWidget(m_packetImportButton);
     ioRow->addWidget(m_packetExportButton);
+    ioRow->addWidget(m_packetFromSendButton);
     root->addLayout(ioRow);
 
     auto *actionRow = new QHBoxLayout;
@@ -783,6 +866,7 @@ QWidget *WorkbenchPage::createPacketSection()
     connect(m_packetBatchSendButton, &PushButton::clicked, this, &WorkbenchPage::sendSelectedPackets);
     connect(m_packetImportButton, &PushButton::clicked, this, &WorkbenchPage::importSendPackets);
     connect(m_packetExportButton, &PushButton::clicked, this, &WorkbenchPage::exportSendPackets);
+    connect(m_packetFromSendButton, &PushButton::clicked, this, &WorkbenchPage::saveSendAreaAsPacket);
     connect(m_packetUpButton, &ToolButton::clicked, this, [this]() { moveSelectedPacket(-1); });
     connect(m_packetDownButton, &ToolButton::clicked, this, [this]() { moveSelectedPacket(1); });
 

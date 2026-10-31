@@ -4,6 +4,7 @@
 #include "app/core/modbus_utils.h"
 #include "app/core/protocol_template.h"
 
+#include <QtCore/QHash>
 #include <QtCore/QTranslator>
 #include <QtTest/QTest>
 
@@ -48,8 +49,7 @@ class FrameCodecsTest : public QObject
         QTest::newRow("prefix inside") << QStringLiteral("AA0x55") << 3 << QByteArray("包含非 HEX 字符");
         QTest::newRow("bare prefix") << QStringLiteral("AA 0x") << 3 << QByteArray("0x 后缺少字节");
         QTest::newRow("odd packed") << QStringLiteral("ABC") << 0 << QByteArray("连续 HEX 字符数量必须为偶数");
-        QTest::newRow("odd prefixed") << QStringLiteral("11 0xABC") << 5
-                                      << QByteArray("连续 HEX 字符数量必须为偶数");
+        QTest::newRow("odd prefixed") << QStringLiteral("11 0xABC") << 5 << QByteArray("连续 HEX 字符数量必须为偶数");
         QTest::newRow("only separators") << QStringLiteral(", ;-") << 0 << QByteArray("没有解析到有效字节");
     }
 
@@ -78,6 +78,63 @@ class FrameCodecsTest : public QObject
         QCOMPARE(bytesToHex(QByteArray()), QString());
     }
 
+    void escapedTextPayloadsDecode_data()
+    {
+        QTest::addColumn<QString>("input");
+        QTest::addColumn<QByteArray>("bytes");
+        QTest::newRow("literal") << QStringLiteral("hello") << QByteArray("hello");
+        QTest::newRow("crlf") << QStringLiteral("A\r\nB") << QByteArray("A\r\nB");
+        QTest::newRow("all short escapes") << QStringLiteral("\\a\\b\\f\\v\\t\\0") << QByteArray("\a\b\f\v\t\0", 6);
+        QTest::newRow("hex mixed case") << QStringLiteral("\\x41\\x5a \\x1b[0m") << QByteArray("AZ \x1B[0m");
+        QTest::newRow("single hex digit") << QStringLiteral("\\xA") << QByteArray("\x0A", 1);
+        QTest::newRow("escaped backslash") << QStringLiteral("C:\\\\temp") << QByteArray("C:\\temp");
+        QTest::newRow("literal text with hex bytes") << QStringLiteral("AT\\x0d") << QByteArray("AT\r");
+        QTest::newRow("chinese gbk") << QStringLiteral("串口\\x41")
+                                     << QByteArray("\xB4\xAE\xBF\xDA"
+                                                   "A");
+        QTest::newRow("empty") << QString() << QByteArray();
+    }
+
+    void escapedTextPayloadsDecode()
+    {
+        QFETCH(QString, input);
+        QFETCH(QByteArray, bytes);
+        const EscapeParseResult result = parseEscapedTextPayload(input, QStringLiteral("gbk"));
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        QCOMPARE(result.bytes, bytes);
+        QCOMPARE(result.errorOffset, qsizetype(-1));
+    }
+
+    void malformedEscapesReportWhere_data()
+    {
+        QTest::addColumn<QString>("input");
+        QTest::addColumn<int>("offset");
+        QTest::addColumn<QByteArray>("message");
+        QTest::newRow("trailing backslash") << QStringLiteral("AB\\") << 2 << QByteArray("转义符后缺少字符");
+        QTest::newRow("hex without digits")
+            << QStringLiteral("\\xZZ") << 0 << QByteArray("\\x 后缺少 1-2 位十六进制数字");
+        QTest::newRow("unknown escape") << QStringLiteral("A\\q") << 1 << QByteArray("不支持的转义序列");
+    }
+
+    void malformedEscapesReportWhere()
+    {
+        QFETCH(QString, input);
+        QFETCH(int, offset);
+        QFETCH(QByteArray, message);
+        const EscapeParseResult result = parseEscapedTextPayload(input, QStringLiteral("gbk"));
+        QVERIFY(!result.ok);
+        QVERIFY(result.bytes.isEmpty());
+        QCOMPARE(result.errorOffset, qsizetype(offset));
+        QCOMPARE(result.errorMessage, AppI18n::text(message.constData()));
+    }
+
+    void escapesDecodeUtf8RunsWithCodec()
+    {
+        const EscapeParseResult result = parseEscapedTextPayload(QStringLiteral("温度\\x41"), QStringLiteral("utf-8"));
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        QCOMPARE(result.bytes, QString::fromUtf8("温度").toUtf8() + QByteArrayLiteral("A"));
+    }
+
     void checksumsMatchStandardCheckValues_data()
     {
         QTest::addColumn<QString>("algorithm");
@@ -99,21 +156,95 @@ class FrameCodecsTest : public QObject
         QCOMPARE(result.value, value);
     }
 
+    // Check values over "123456789" for every algorithm in options(). PEC and
+    // ZMODEM carry the values the parameterizations actually produce (see the
+    // notes in checksum_utils.cpp); all others match published check values.
+    void everyAlgorithmMatchesDocumentedCheckValue()
+    {
+        struct Expected
+        {
+            const char *key;
+            quint32 value;
+        };
+        static const QVector<Expected> expected = {
+            {"crc16-modbus", 0x4B37},
+            {"crc16-ccitt", 0x29B1},
+            {"crc32", 0xCBF43926},
+            {"lrc", 0x23},
+            {"xor", 0x31},
+            {"sum8", 0xDD},
+            {"crc8", 0xF4},
+            {"crc8-cdma2000", 0xDA},
+            {"crc8-itu", 0xA1},
+            {"crc8-maxim", 0xA1},
+            {"crc8-rohc", 0xD0},
+            {"crc8-wcdma", 0x25},
+            {"crc16-ccitt-false", 0x29B1},
+            {"crc16-xmodem", 0x31C3},
+            {"crc16-x25", 0x906E},
+            {"crc16-kermit", 0x2189},
+            {"crc16-ibm", 0xBB3D},
+            {"crc16-maxim", 0x44C2},
+            {"crc16-usb", 0xB4C8},
+            {"crc16-dnp", 0xEA82},
+            {"crc16-pec", 0x31C3},
+            {"crc32-bzip2", 0xFC891918},
+            {"crc32-jamcrc", 0x340BC6D9},
+            {"crc32-mpeg2", 0x0376E6E7},
+            {"crc32-posix", 0x765E7680},
+            {"crc32-zmodem", 0x89A1897F},
+            {"checksum8", 0xDD},
+            {"checksum8r", 0x22},
+            {"checksum16", 0x01DD},
+            {"checksum16-internet", 0xF62A},
+            {"checksum16-mitsubishi", 0xFE23},
+        };
+        QHash<QString, quint32> values;
+        for (const Expected &item : expected) {
+            values.insert(QString::fromLatin1(item.key), item.value);
+        }
+
+        const QByteArray check = QByteArrayLiteral("123456789");
+        const QList<AppChecksum::AlgorithmOption> algorithms = AppChecksum::options();
+        QCOMPARE(algorithms.size(), expected.size());
+        for (const AppChecksum::AlgorithmOption &option : algorithms) {
+            QVERIFY2(values.contains(option.key),
+                     qPrintable(QStringLiteral("missing check value for %1").arg(option.key)));
+            const auto result = AppChecksum::calculate(check, option.key, AppChecksum::ByteOrder::BigEndian);
+            QVERIFY2(result.ok, qPrintable(QStringLiteral("%1 failed to calculate").arg(option.key)));
+            QCOMPARE(result.value, values.value(option.key));
+            // The serialized bytes must carry the value in the algorithm's width.
+            const QString hex = bytesToHex(result.bytes).remove(QLatin1Char(' '));
+            QString wanted = QString::number(values.value(option.key), 16).toUpper();
+            while (wanted.size() < option.widthBytes * 2) {
+                wanted.prepend(QLatin1Char('0'));
+            }
+            QCOMPARE(hex, wanted);
+        }
+
+        // Normalized aliases keep their existing targets and gain the new ones.
+        QCOMPARE(AppChecksum::normalizedAlgorithmKey(QStringLiteral("crc16")), QStringLiteral("crc16-ccitt"));
+        QCOMPARE(AppChecksum::normalizedAlgorithmKey(QStringLiteral("crc")), QStringLiteral("crc32"));
+        QCOMPARE(AppChecksum::normalizedAlgorithmKey(QStringLiteral("xmodem")), QStringLiteral("crc16-xmodem"));
+        QCOMPARE(AppChecksum::normalizedAlgorithmKey(QStringLiteral("kermit")), QStringLiteral("crc16-kermit"));
+    }
+
     void unsupportedChecksumAlgorithmIsReportedInsteadOfReplaced()
     {
         QVERIFY(AppChecksum::isSupportedAlgorithm(QStringLiteral("CRC32")));
-        QVERIFY(!AppChecksum::isSupportedAlgorithm(QStringLiteral("crc8")));
-        const auto unknown = AppChecksum::calculate(QByteArrayLiteral("123456789"), QStringLiteral("crc8"),
+        QVERIFY(AppChecksum::isSupportedAlgorithm(QStringLiteral("crc8")));
+        QVERIFY(!AppChecksum::isSupportedAlgorithm(QStringLiteral("no-such-algorithm")));
+        const auto unknown = AppChecksum::calculate(QByteArrayLiteral("123456789"), QStringLiteral("no-such-algorithm"),
                                                     AppChecksum::ByteOrder::LittleEndian);
         QVERIFY(!unknown.ok);
         QVERIFY(!unknown.errorMessage.isEmpty());
 
         AppProtocol::ProtocolTemplate protocol = AppProtocol::defaultTemplate();
         QByteArray checked = QByteArray::fromHex("AA550310010203");
-        checked +=AppChecksum::calculate(checked, protocol.checksumAlgorithm, protocol.checksumByteOrder).bytes;
+        checked += AppChecksum::calculate(checked, protocol.checksumAlgorithm, protocol.checksumByteOrder).bytes;
         QVERIFY(AppProtocol::parseFrame(checked, protocol).checksumValid);
         // A template naming an unsupported algorithm must not be checked as CRC16-Modbus.
-        protocol.checksumAlgorithm = QStringLiteral("crc8");
+        protocol.checksumAlgorithm = QStringLiteral("no-such-algorithm");
         const auto parsed = AppProtocol::parseFrame(checked, protocol);
         QVERIFY(!parsed.ok);
         QVERIFY(!parsed.checksumChecked);
@@ -278,9 +409,9 @@ class FrameCodecsTest : public QObject
         QVERIFY(translator.load(QStringLiteral(":/app/i18n/fluentserialassistant.en_US.qm")));
         QVERIFY(QCoreApplication::installTranslator(&translator));
         const auto withCrc = [](QByteArray frame) {
-            return frame + AppChecksum::calculate(frame, QStringLiteral("crc16-modbus"),
-                                                  AppChecksum::ByteOrder::LittleEndian)
-                               .bytes;
+            return frame +
+                   AppChecksum::calculate(frame, QStringLiteral("crc16-modbus"), AppChecksum::ByteOrder::LittleEndian)
+                       .bytes;
         };
         const auto response = AppModbus::parseResponse(withCrc(QByteArray::fromHex("010F0000000A")));
         const auto exception = AppModbus::parseResponse(withCrc(QByteArray::fromHex("018F02")));
@@ -291,6 +422,62 @@ class FrameCodecsTest : public QObject
                  qPrintable(response.summary));
         QVERIFY2(exception.summary.startsWith(QStringLiteral("Modbus exception · Slave ID 1 · Function 0x8F")),
                  qPrintable(exception.summary));
+    }
+
+    void modbusAsciiRequestBuildsExactFrame()
+    {
+        AppModbus::RequestConfig config;
+        config.slaveId = 1;
+        config.functionKey = QStringLiteral("read-holding-registers");
+        config.address = 0x0000;
+        config.quantity = 2;
+        config.mode = AppModbus::TransportMode::Ascii;
+        const auto result = AppModbus::buildRequest(config);
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        // ':' + hex ASCII of the PDU (01 03 00 00 00 02) + LRC 0xFA + CRLF.
+        QCOMPARE(result.frame, QByteArrayLiteral(":010300000002FA\r\n"));
+    }
+
+    void modbusAsciiResponseParse()
+    {
+        // Read holding registers response: slave 1, function 3, byte count 4, registers 10 and 20.
+        // PDU sum is 0x26, so the LRC (two's complement) is 0xDA.
+        const auto response = AppModbus::parseResponse(QByteArrayLiteral(":010304000A0014DA\r\n"));
+        QVERIFY(response.recognized);
+        QVERIFY(response.crcValid);
+        QCOMPARE(response.mode, AppModbus::TransportMode::Ascii);
+        QVERIFY2(response.summary.contains(QStringLiteral("10, 20")), qPrintable(response.summary));
+
+        // Exception response: slave 1, function 0x83, code 0x02; LRC = 0x7A.
+        const auto exception = AppModbus::parseResponse(QByteArrayLiteral(":0183027A\r\n"));
+        QVERIFY(exception.recognized);
+        QVERIFY(exception.crcValid);
+        QCOMPARE(exception.mode, AppModbus::TransportMode::Ascii);
+        QVERIFY2(exception.summary.contains(QStringLiteral("0x83")), qPrintable(exception.summary));
+
+        // A wrong LRC still parses the frame but must be reported as invalid.
+        const auto broken = AppModbus::parseResponse(QByteArrayLiteral(":010304000A0014FF\r\n"));
+        QVERIFY(broken.recognized);
+        QVERIFY(!broken.crcValid);
+        QCOMPARE(broken.mode, AppModbus::TransportMode::Ascii);
+    }
+
+    void modbusRtuRegression()
+    {
+        AppModbus::RequestConfig config;
+        config.slaveId = 1;
+        config.functionKey = QStringLiteral("read-holding-registers");
+        config.address = 0x0000;
+        config.quantity = 2;
+        const auto result = AppModbus::buildRequest(config);
+        QVERIFY2(result.ok, qPrintable(result.errorMessage));
+        QCOMPARE(result.frame.size(), 8);
+        QVERIFY(result.frame.startsWith(QByteArray::fromHex("010300000002")));
+
+        const auto parsed = AppModbus::parseResponse(result.frame);
+        QVERIFY(parsed.recognized);
+        QVERIFY(parsed.crcValid);
+        QCOMPARE(parsed.mode, AppModbus::TransportMode::Rtu);
     }
 
     void modbusQuantitiesFitOneFrame_data()

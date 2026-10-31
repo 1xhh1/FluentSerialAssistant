@@ -2,6 +2,7 @@
 
 #include "app/core/plot_value_parser.h"
 #include "app/core/protocol_template.h"
+#include "app/serial/link_config.h"
 #include "app/serial/serial_controller.h"
 
 #include <QtCore/QDateTime>
@@ -15,6 +16,7 @@ struct SessionStatus
     QString id;
     bool connected = false;
     SerialPortConfig serialConfig;
+    QString transport = QStringLiteral("serial");
     qint64 receivedBytes = 0;
     qint64 transmittedBytes = 0;
     int recordCount = 0;
@@ -47,6 +49,12 @@ class SessionControl
 
     virtual SessionStatus controlStatus() const = 0;
     virtual bool controlConnect(const SerialPortConfig &config, QString *error) = 0;
+    // Connects a transport-agnostic link. The default bridges to the serial
+    // connection so implementations only override what they support.
+    virtual bool controlConnectLink(const LinkConfig &config, QString *error)
+    {
+        return controlConnect(config.serial, error);
+    }
     virtual void controlDisconnect() = 0;
     virtual bool controlSendBytes(const QByteArray &data, const QString &source, QString *error) = 0;
     virtual QList<RecordSnapshot> controlRecords(int limit, const QString &direction) const = 0;

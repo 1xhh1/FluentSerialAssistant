@@ -180,12 +180,12 @@ bool WorkbenchPage::ensureAutoLogFile(ExportFormat format, qint64 nextBytes)
         m_autoLogSessionStamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss_zzz"));
     }
 
-    QString portName = m_lastConfig.portName;
+    QString portName = m_lastConfig.type == LinkType::Serial ? m_lastConfig.serial.portName : m_lastConfig.key();
     if (portName.isEmpty() && m_portCombo) {
         portName = m_portCombo->currentData().toString();
     }
-    const QString baudRate = m_lastConfig.baudRate > 0
-                                 ? QString::number(m_lastConfig.baudRate)
+    const QString baudRate = m_lastConfig.type == LinkType::Serial && m_lastConfig.serial.baudRate > 0
+                                 ? QString::number(m_lastConfig.serial.baudRate)
                                  : (m_baudCombo ? m_baudCombo->currentText().trimmed() : QStringLiteral("baud"));
     const QString fileName = QStringLiteral("serial_log_%1_%2_%3_%4.%5")
                                  .arg(m_autoLogSessionStamp, safeFileNamePart(portName), safeFileNamePart(baudRate))
@@ -268,7 +268,7 @@ void WorkbenchPage::updateAutoLogStatus()
         return;
     }
 
-    m_autoLogStatusLabel->setText(m_serial.isOpen() ? AppI18n::text("自动日志已启用，等待数据写入")
+    m_autoLogStatusLabel->setText(m_link.isOpen() ? AppI18n::text("自动日志已启用，等待数据写入")
                                                     : AppI18n::text("自动日志已启用，连接后写入"));
 }
 
@@ -279,7 +279,7 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
 
     // Restoring the option at startup must not create an empty file; the
     // connection opens it.
-    if (!enabled || !m_serial.isOpen()) {
+    if (!enabled || !m_link.isOpen()) {
         closeReceiveCapture();
         return;
     }
@@ -343,7 +343,7 @@ void WorkbenchPage::browseSendFile()
 
 void WorkbenchPage::startFileSend()
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法发送文件"), AppI18n::text("请先连接串口"));
         return;
     }
@@ -404,14 +404,14 @@ void WorkbenchPage::sendNextFileChunk()
     if (!m_fileSendFile.isOpen()) {
         return;
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         cancelFileSend();
         showWarning(AppI18n::text("文件发送中止"), AppI18n::text("串口已断开"));
         return;
     }
     // Queue the next chunk only after the port has taken the previous one, so
     // progress, cancellation and completion follow what was actually sent.
-    if (m_serial.bytesToWrite() > 0) {
+    if (m_link.bytesToWrite() > 0) {
         m_fileSendTimer.start(FileSendDrainPollMs);
         return;
     }
@@ -437,7 +437,7 @@ void WorkbenchPage::sendNextFileChunk()
     }
 
     QString error;
-    if (!m_serial.writeData(data, &error)) {
+    if (!m_link.writeData(data, &error)) {
         m_fileSendFile.close();
         updateFileSendUi(false);
         updateFileProgress();
@@ -469,7 +469,7 @@ void WorkbenchPage::updateFileSendUi(bool sending)
         m_fileIntervalEdit->setEnabled(!sending);
     }
     if (m_fileSendButton) {
-        m_fileSendButton->setEnabled(!sending && m_serial.isOpen());
+        m_fileSendButton->setEnabled(!sending && m_link.isOpen());
     }
     if (m_fileCancelButton) {
         m_fileCancelButton->setEnabled(sending);

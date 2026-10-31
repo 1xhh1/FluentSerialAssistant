@@ -7,11 +7,12 @@ using namespace WorkbenchPagePrivate;
 
 void WorkbenchPage::scheduleReconnect()
 {
-    if (VirtualSerialPair::isVirtualPort(m_lastConfig.portName) && !VirtualSerialPair::instance()->isEnabled()) {
+    if (m_lastConfig.type == LinkType::Serial && VirtualSerialPair::isVirtualPort(m_lastConfig.serial.portName) &&
+        !VirtualSerialPair::instance()->isEnabled()) {
         m_reconnectTimer.stop();
         return;
     }
-    if (m_lastConfig.portName.isEmpty() || m_manualDisconnect || !m_autoReconnectCheck->isChecked()) {
+    if (!hasLastLinkConfig() || m_manualDisconnect || !m_autoReconnectCheck->isChecked()) {
         return;
     }
     if (!m_reconnectTimer.isActive()) {
@@ -22,48 +23,58 @@ void WorkbenchPage::scheduleReconnect()
 
 void WorkbenchPage::attemptReconnect()
 {
-    if (VirtualSerialPair::isVirtualPort(m_lastConfig.portName) && !VirtualSerialPair::instance()->isEnabled()) {
+    if (m_lastConfig.type == LinkType::Serial && VirtualSerialPair::isVirtualPort(m_lastConfig.serial.portName) &&
+        !VirtualSerialPair::instance()->isEnabled()) {
         m_reconnectTimer.stop();
         return;
     }
-    if (m_serial.isOpen()) {
+    if (m_link.isOpen()) {
         m_reconnectTimer.stop();
         return;
     }
-    if (m_lastConfig.portName.isEmpty() || !m_autoReconnectCheck->isChecked()) {
+    if (!hasLastLinkConfig() || !m_autoReconnectCheck->isChecked()) {
         m_reconnectTimer.stop();
         return;
     }
 
-    refreshPorts();
-    m_serial.openPort(m_lastConfig);
+    if (m_lastConfig.type == LinkType::Serial) {
+        refreshPorts();
+    }
+    m_link.openLink(m_lastConfig);
 }
 
 void WorkbenchPage::onConnectClicked()
 {
-    if (m_serial.isOpen()) {
+    if (m_link.isOpen()) {
         m_manualDisconnect = true;
         m_reconnectTimer.stop();
-        m_serial.closePort();
+        m_link.closeLink();
         return;
     }
 
-    const SerialPortConfig config = currentSerialConfig();
-    if (config.portName.isEmpty()) {
+    const LinkConfig config = currentLinkConfig();
+    if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() == QStringLiteral("serial") &&
+        config.serial.portName.isEmpty()) {
         showWarning(AppI18n::text("未选择端口"), AppI18n::text("请先刷新并选择可用串口"));
         return;
     }
-
-    bool baudOk = false;
-    const int baud = m_baudCombo->currentText().trimmed().toInt(&baudOk);
-    if (!baudOk || baud <= 0) {
-        showWarning(AppI18n::text("波特率无效"), AppI18n::text("请输入大于 0 的波特率"));
+    if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() == QStringLiteral("serial")) {
+        bool baudOk = false;
+        const int baud = m_baudCombo->currentText().trimmed().toInt(&baudOk);
+        if (!baudOk || baud <= 0) {
+            showWarning(AppI18n::text("波特率无效"), AppI18n::text("请输入大于 0 的波特率"));
+            return;
+        }
+    }
+    if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() != QStringLiteral("serial") &&
+        (config.port == 0 || (config.type == LinkType::TcpClient && config.host.trimmed().isEmpty()))) {
+        showWarning(AppI18n::text("网络参数无效"), AppI18n::text("请填写有效的主机地址和端口"));
         return;
     }
 
     m_manualDisconnect = false;
     m_lastConfig = config;
-    m_serial.openPort(config);
+    m_link.openLink(config);
 }
 
 void WorkbenchPage::onLoopChanged(bool checked)
@@ -73,7 +84,7 @@ void WorkbenchPage::onLoopChanged(bool checked)
         m_loopTimer.stop();
         return;
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         m_loopCheck->setChecked(false);
         showWarning(AppI18n::text("无法循环发送"), AppI18n::text("请先连接串口"));
         return;
@@ -110,6 +121,15 @@ void WorkbenchPage::setControlsEnabledForConnection(bool connected)
     m_stopBitsCombo->setEnabled(!connected);
     m_flowControlCombo->setEnabled(!connected);
     m_refreshButton->setEnabled(!connected);
+    if (m_linkTypeCombo) {
+        m_linkTypeCombo->setEnabled(!connected);
+    }
+    if (m_hostEdit) {
+        m_hostEdit->setEnabled(!connected);
+    }
+    if (m_portEdit) {
+        m_portEdit->setEnabled(!connected);
+    }
 
     if (!connected) {
         m_loopCheck->setChecked(false);

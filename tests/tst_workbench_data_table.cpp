@@ -263,7 +263,7 @@ class WorkbenchDataTableTest : public QObject
         window->m_table->selectRow(selected.row());
         window->locateSelectedFrame();
 
-        QCOMPARE(page.m_terminalView->textCursor().selectedText(), QStringLiteral("» following record"));
+        QCOMPARE(page.m_terminalView->textCursor().selectedText(), QStringLiteral("»Tx following record"));
         QCOMPARE(page.m_terminalView->textCursor().blockNumber(), 3);
     }
 

@@ -8,7 +8,7 @@ using namespace WorkbenchPagePrivate;
 
 void WorkbenchPage::setupSerialSignals()
 {
-    connect(&m_serial, &SerialController::opened, this, [this](const QString &portName) {
+    connect(&m_link, &LinkController::opened, this, [this](const QString &portName) {
         ++m_connectionGeneration;
         m_autoReplyBuffer.clear();
         m_reconnectTimer.stop();
@@ -29,10 +29,11 @@ void WorkbenchPage::setupSerialSignals()
         }
         showSuccess(AppI18n::text("连接成功"), AppI18n::text("%1 已打开").arg(portName));
     });
-    connect(&m_serial, &SerialController::closed, this, [this]() {
+    connect(&m_link, &LinkController::closed, this, [this]() {
         ++m_connectionGeneration;
         m_autoReplyBuffer.clear();
-        if (VirtualSerialPair::isVirtualPort(m_lastConfig.portName) && !VirtualSerialPair::instance()->isEnabled()) {
+        if (m_lastConfig.type == LinkType::Serial && VirtualSerialPair::isVirtualPort(m_lastConfig.serial.portName) &&
+            !VirtualSerialPair::instance()->isEnabled()) {
             m_manualDisconnect = true;
             m_reconnectTimer.stop();
             stopScript();
@@ -56,9 +57,8 @@ void WorkbenchPage::setupSerialSignals()
         }
         showInfo(AppI18n::text("连接已关闭"), AppI18n::text("串口已断开"));
     });
-    connect(&m_serial, &SerialController::dataReceived, this,
-            [this](const QByteArray &data) { handleReceivedData(data); });
-    connect(&m_serial, &SerialController::errorOccurred, this, [this](const QString &message) {
+    connect(&m_link, &LinkController::dataReceived, this, [this](const QByteArray &data) { handleReceivedData(data); });
+    connect(&m_link, &LinkController::errorOccurred, this, [this](const QString &message) {
         if (!message.isEmpty()) {
             if (m_reconnectTimer.isActive()) {
                 return;
@@ -67,7 +67,8 @@ void WorkbenchPage::setupSerialSignals()
         }
     });
     connect(VirtualSerialPair::instance(), &VirtualSerialPair::enabledChanged, this, [this](bool enabled) {
-        if (!enabled && VirtualSerialPair::isVirtualPort(m_lastConfig.portName)) {
+        if (!enabled && m_lastConfig.type == LinkType::Serial &&
+            VirtualSerialPair::isVirtualPort(m_lastConfig.serial.portName)) {
             m_manualDisconnect = true;
             m_reconnectTimer.stop();
         }
@@ -90,14 +91,28 @@ void WorkbenchPage::refreshPorts()
         }
     }
 
+    // The pair is only usable from the sessions of this app, so it never
+    // appears in the physical port scan. Offer its endpoints for connection
+    // whenever it is enabled.
+    if (VirtualSerialPair::instance()->isEnabled()) {
+        const std::array names{VirtualSerialPair::portAName(), VirtualSerialPair::portBName()};
+        for (const QString &name : names) {
+            const QString label = QStringLiteral("%1（%2）").arg(name, AppI18n::text("虚拟串口"));
+            m_portCombo->addItem(label, QIcon(), name);
+            if (name == previousPort) {
+                selectedIndex = m_portCombo->count() - 1;
+            }
+        }
+    }
+
     // Refreshing an unrelated virtual pair must preserve a manually opened device.
-    if (m_serial.isOpen() && selectedIndex < 0) {
-        m_portCombo->addItem(m_serial.portName(), QIcon(), m_serial.portName());
+    if (m_link.isOpen() && selectedIndex < 0) {
+        m_portCombo->addItem(m_link.displayName(), QIcon(), m_link.displayName());
         m_portCombo->setCurrentIndex(m_portCombo->count() - 1);
         return;
     }
 
-    if (m_ports.isEmpty()) {
+    if (m_ports.isEmpty() && m_portCombo->count() == 0) {
         m_portCombo->addItem(AppI18n::text("未发现串口"));
         m_portCombo->setItemEnabled(0, false);
         m_portCombo->setCurrentIndex(0);
@@ -154,6 +169,7 @@ void WorkbenchPage::restoreSettings()
     const int modbusAddress = settings.value(QStringLiteral("modbus/address"), 0).toInt();
     const int modbusQuantity = settings.value(QStringLiteral("modbus/quantity"), 1).toInt();
     const QString modbusValues = settings.value(QStringLiteral("modbus/values")).toString();
+    const QString modbusMode = settings.value(QStringLiteral("modbus/mode"), QStringLiteral("rtu")).toString();
     const int macroLoopCount = settings.value(QStringLiteral("macro/loopCount"), 1).toInt();
     const bool macroAbortOnFailure = settings.value(QStringLiteral("macro/abortOnFailure"), true).toBool();
     const QString scriptText = settings.value(QStringLiteral("script/current")).toString();
@@ -169,6 +185,20 @@ void WorkbenchPage::restoreSettings()
         m_portCombo->setCurrentIndex(portIndex);
     } else if (VirtualSerialPair::isVirtualPort(portName)) {
         m_portCombo->setCurrentIndex(-1);
+    }
+    const QString linkType = settings.value(QStringLiteral("link/type"), QStringLiteral("serial")).toString();
+    const int linkTypeIndex = m_linkTypeCombo ? m_linkTypeCombo->findData(linkType) : -1;
+    if (m_linkTypeCombo && linkTypeIndex >= 0) {
+        m_linkTypeCombo->setCurrentIndex(linkTypeIndex);
+    }
+    if (m_hostEdit) {
+        m_hostEdit->setText(settings.value(QStringLiteral("link/host")).toString());
+    }
+    if (m_portEdit && settings.contains(QStringLiteral("link/port"))) {
+        const int linkPort = settings.value(QStringLiteral("link/port"), 0).toInt();
+        if (linkPort > 0) {
+            m_portEdit->setText(QString::number(linkPort));
+        }
     }
     m_baudCombo->setCurrentText(baudRate);
     m_dataBitsCombo->setCurrentText(dataBits);
@@ -189,6 +219,7 @@ void WorkbenchPage::restoreSettings()
     }
     selectEncodingOption(m_receiveEncodingCombo, receiveEncoding);
     m_hexSendCheck->setChecked(sendMode == QStringLiteral("hex"));
+    m_escapeParseCheck->setChecked(settings.value(QStringLiteral("send/escapeParse"), false).toBool());
     selectEncodingOption(m_sendEncodingCombo, sendEncoding);
     selectChecksumAlgorithm(m_checksumAlgorithmCombo, checksumAlgorithm);
     const int checksumByteOrderIndex =
@@ -211,7 +242,16 @@ void WorkbenchPage::restoreSettings()
     m_autoOpenCheck->setChecked(settings.value(QStringLiteral("serial/autoOpen"), false).toBool());
     m_saveReceiveCheck->setChecked(settings.value(QStringLiteral("receive/saveToFile"), false).toBool());
     m_autoScrollCheck->setChecked(settings.value(QStringLiteral("receive/autoScroll"), true).toBool());
-    m_timestampCheck->setChecked(settings.value(QStringLiteral("receive/timestamp"), false).toBool());
+    m_timestampCheck->setChecked(settings.value(QStringLiteral("receive/timestamp"), true).toBool());
+    if (m_timestampFormatCombo) {
+        const QString timestampFormat =
+            settings.value(QStringLiteral("receive/timestampFormat"), QStringLiteral("HH:mm:ss.zzz")).toString();
+        const int timestampFormatIndex = m_timestampFormatCombo->findData(timestampFormat);
+        if (timestampFormatIndex >= 0) {
+            m_timestampFormatCombo->setCurrentIndex(timestampFormatIndex);
+        }
+        m_timestampFormatCombo->setEnabled(m_timestampCheck->isChecked());
+    }
     const int frameModeIndex = m_frameModeCombo->findData(frameMode);
     m_frameModeCombo->setCurrentIndex(frameModeIndex >= 0 ? frameModeIndex
                                                           : m_frameModeCombo->findData(QStringLiteral("timeout")));
@@ -255,6 +295,11 @@ void WorkbenchPage::restoreSettings()
     setNumberEditValue(m_modbusAddressEdit, modbusAddress, 0, 65535);
     setNumberEditValue(m_modbusQuantityEdit, modbusQuantity, 1, 2000);
     m_modbusValuesEdit->setPlainText(modbusValues);
+    const int modbusModeIndex = m_modbusModeCombo ? m_modbusModeCombo->findData(modbusMode) : -1;
+    if (m_modbusModeCombo && modbusModeIndex >= 0) {
+        m_modbusModeCombo->setCurrentIndex(modbusModeIndex);
+    }
+    updateModbusStatusHint();
     updateModbusUi();
     setNumberEditValue(m_macroLoopCountEdit, macroLoopCount, 1, 100000);
     m_macroAbortOnFailureCheck->setChecked(macroAbortOnFailure);
@@ -287,9 +332,14 @@ void WorkbenchPage::saveSettings() const
     settings.setValue(QStringLiteral("serial/rts"), m_rtsCheck->isChecked());
     settings.setValue(QStringLiteral("serial/dtr"), m_dtrCheck->isChecked());
     settings.setValue(QStringLiteral("serial/autoOpen"), m_autoOpenCheck->isChecked());
+    settings.setValue(QStringLiteral("link/type"),
+                      m_linkTypeCombo ? m_linkTypeCombo->currentData().toString() : QStringLiteral("serial"));
+    settings.setValue(QStringLiteral("link/host"), m_hostEdit ? m_hostEdit->text() : QString());
+    settings.setValue(QStringLiteral("link/port"), m_portEdit ? m_portEdit->text().toInt() : 0);
     settings.setValue(QStringLiteral("receive/saveToFile"), m_saveReceiveCheck->isChecked());
     settings.setValue(QStringLiteral("receive/autoScroll"), m_autoScrollCheck->isChecked());
     settings.setValue(QStringLiteral("receive/timestamp"), m_timestampCheck->isChecked());
+    settings.setValue(QStringLiteral("receive/timestampFormat"), terminalTimestampFormat());
     settings.setValue(QStringLiteral("receive/autoFrameBreak"), m_autoFrameBreakCheck->isChecked());
     settings.setValue(QStringLiteral("receive/frameMode"), frameBreakModeKey());
     settings.setValue(QStringLiteral("receive/framePattern"), m_framePatternEdit->text());
@@ -328,6 +378,8 @@ void WorkbenchPage::saveSettings() const
     settings.setValue(QStringLiteral("modbus/address"), numberEditValue(m_modbusAddressEdit, 0, 0, 65535));
     settings.setValue(QStringLiteral("modbus/quantity"), numberEditValue(m_modbusQuantityEdit, 1, 1, 2000));
     settings.setValue(QStringLiteral("modbus/values"), m_modbusValuesEdit->toPlainText());
+    settings.setValue(QStringLiteral("modbus/mode"),
+                      m_modbusModeCombo ? m_modbusModeCombo->currentData().toString() : QStringLiteral("rtu"));
     settings.setValue(QStringLiteral("macro/loopCount"), numberEditValue(m_macroLoopCountEdit, 1, 1, 100000));
     settings.setValue(QStringLiteral("macro/abortOnFailure"), m_macroAbortOnFailureCheck->isChecked());
     saveProtocolTemplates();
@@ -631,7 +683,7 @@ void WorkbenchPage::updateRateStats()
     if (!m_connectionTimeLabel) {
         return;
     }
-    if (m_serial.isOpen() && m_connectionStartedAt.isValid()) {
+    if (m_link.isOpen() && m_connectionStartedAt.isValid()) {
         const qint64 seconds = m_connectionStartedAt.secsTo(QDateTime::currentDateTime());
         m_connectionStatusLabel->setText(AppI18n::text("已连接"));
         m_connectionTimeLabel->setText(formatDuration(seconds));

@@ -56,7 +56,7 @@ WorkbenchPage::WorkbenchPage(QWidget *parent, bool restoreSavedSession, bool all
     connect(&m_rxFrameIdleTimer, &QTimer::timeout, this, &WorkbenchPage::flushRxFrameBuffer);
     connect(ThemeManager::instance(), &ThemeManager::effectiveThemeChanged, this, [this]() { renderTerminal(); });
     connect(FluentConfig::instance(), &FluentConfig::localeNameChanged, this, [this]() {
-        updateConnectionUi(m_serial.isOpen());
+        updateConnectionUi(m_link.isOpen());
         updateCounters();
         updateHistoryCombo();
         updateReceiveModeButton();
@@ -103,10 +103,12 @@ WorkbenchPage::WorkbenchPage(QWidget *parent, bool restoreSavedSession, bool all
     updateRateStats();
     updateHistoryCombo();
 
-    if (allowAutoOpen && m_autoOpenCheck && m_autoOpenCheck->isChecked() && !currentSerialConfig().portName.isEmpty()) {
+    if (allowAutoOpen && m_autoOpenCheck && m_autoOpenCheck->isChecked() &&
+        (!m_linkTypeCombo || m_linkTypeCombo->currentData().toString() == QStringLiteral("serial")) &&
+        !currentSerialConfig().portName.isEmpty()) {
         const QString autoOpenPort = currentSerialConfig().portName;
         QTimer::singleShot(250, this, [this, autoOpenPort]() {
-            if (!m_serial.isOpen() && currentSerialConfig().portName == autoOpenPort) {
+            if (!m_link.isOpen() && currentSerialConfig().portName == autoOpenPort) {
                 onConnectClicked();
             }
         });
@@ -145,13 +147,10 @@ WorkbenchPage::~WorkbenchPage()
     m_macroTimer.stop();
     closeAutoLog();
     closeReceiveCapture();
-    m_serial.closePort();
+    m_link.closeLink();
 }
 
-void WorkbenchPage::reloadTerminalColors()
-{
-    applyTerminalColorConfig(AppTerminal::loadColorConfig());
-}
+void WorkbenchPage::reloadTerminalColors() { applyTerminalColorConfig(AppTerminal::loadColorConfig()); }
 
 void WorkbenchPage::publishSharedList(SharedList list) const
 {

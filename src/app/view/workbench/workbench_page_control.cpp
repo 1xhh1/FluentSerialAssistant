@@ -23,8 +23,9 @@ AppControl::SessionStatus WorkbenchPage::controlStatus() const
 {
     AppControl::SessionStatus status;
     status.id = objectName();
-    status.connected = m_serial.isOpen();
-    status.serialConfig = currentSerialConfig();
+    status.connected = m_link.isOpen();
+    status.serialConfig = currentLinkConfig().serial;
+    status.transport = linkTypeKey(m_link.linkType());
     status.receivedBytes = m_rxCount;
     status.transmittedBytes = m_txCount;
     status.recordCount = m_records.size();
@@ -53,10 +54,10 @@ bool WorkbenchPage::controlConnect(const SerialPortConfig &config, QString *erro
         return false;
     }
 
-    if (m_serial.isOpen()) {
+    if (m_link.isOpen()) {
         m_manualDisconnect = true;
         m_reconnectTimer.stop();
-        m_serial.closePort();
+        m_link.closeLink();
     }
 
     refreshPorts();
@@ -85,10 +86,66 @@ bool WorkbenchPage::controlConnect(const SerialPortConfig &config, QString *erro
     }
 
     m_manualDisconnect = false;
-    m_lastConfig = config;
-    if (!m_serial.openPort(config)) {
+    LinkConfig linkConfig;
+    linkConfig.type = LinkType::Serial;
+    linkConfig.serial = config;
+    m_lastConfig = linkConfig;
+    if (!m_link.openLink(m_lastConfig)) {
         if (error) {
-            *error = m_serial.errorString();
+            *error = m_link.errorString();
+        }
+        return false;
+    }
+    return true;
+}
+
+bool WorkbenchPage::controlConnectLink(const LinkConfig &config, QString *error)
+{
+    if (error) {
+        error->clear();
+    }
+    if (config.type != LinkType::Serial &&
+        ((config.type != LinkType::TcpServer && (config.host.trimmed().isEmpty() || config.port == 0)) ||
+         (config.type == LinkType::TcpServer && config.port == 0))) {
+        if (error) {
+            *error = QStringLiteral("A positive port (and host for client/UDP) is required");
+        }
+        return false;
+    }
+
+    if (m_linkTypeCombo) {
+        const int typeIndex = m_linkTypeCombo->findData(config.key());
+        if (typeIndex >= 0) {
+            m_linkTypeCombo->setCurrentIndex(typeIndex);
+        }
+    }
+    if (config.type == LinkType::Serial) {
+        if (m_hostEdit) {
+            m_hostEdit->clear();
+        }
+        if (m_portEdit) {
+            m_portEdit->clear();
+        }
+        return controlConnect(config.serial, error);
+    }
+
+    if (m_link.isOpen()) {
+        m_manualDisconnect = true;
+        m_reconnectTimer.stop();
+        m_link.closeLink();
+    }
+    if (m_hostEdit) {
+        m_hostEdit->setText(config.host.trimmed());
+    }
+    if (m_portEdit) {
+        m_portEdit->setText(QString::number(config.port));
+    }
+
+    m_manualDisconnect = false;
+    m_lastConfig = config;
+    if (!m_link.openLink(m_lastConfig)) {
+        if (error) {
+            *error = m_link.errorString();
         }
         return false;
     }
@@ -99,7 +156,7 @@ void WorkbenchPage::controlDisconnect()
 {
     m_manualDisconnect = true;
     m_reconnectTimer.stop();
-    m_serial.closePort();
+    m_link.closeLink();
 }
 
 bool WorkbenchPage::controlSendBytes(const QByteArray &data, const QString &source, QString *error)
@@ -113,13 +170,13 @@ bool WorkbenchPage::controlSendBytes(const QByteArray &data, const QString &sour
         }
         return false;
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         if (error) {
             *error = QStringLiteral("Serial port is not connected");
         }
         return false;
     }
-    if (!m_serial.writeData(data, error)) {
+    if (!m_link.writeData(data, error)) {
         return false;
     }
     appendRecord(RecordDirection::Tx, data, true, source);
@@ -222,8 +279,8 @@ bool WorkbenchPage::controlShowPlot(const AppPlot::ParserConfig &config, bool cl
     }
 
     const auto protocolTemplate = selectedProtocolTemplate();
-    const bool usesPayload = config.protocol == AppPlot::Protocol::Binary &&
-                             config.binarySource == AppPlot::BinarySource::Payload;
+    const bool usesPayload =
+        config.protocol == AppPlot::Protocol::Binary && config.binarySource == AppPlot::BinarySource::Payload;
     QuickPlotWindow *plotWindow = m_controlPlotWindow;
     if (!plotWindow || !plotWindow->isVisible()) {
         plotWindow = createQuickPlotWindow(config, usesPayload ? &protocolTemplate : nullptr);

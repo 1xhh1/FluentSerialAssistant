@@ -139,7 +139,7 @@ WorkbenchPage *WorkbenchSessionsPage::addSession(WorkbenchPage *source, bool res
 
     const QString routeKey = nextRouteKey();
     session->setObjectName(routeKey);
-    const int index = m_tabs->addTab(session, nextTitle(), icon(FluentIcon::CommandPrompt), routeKey);
+    const int index = m_tabs->addTab(session, nextTitle(), icon(FluentIcon::Connect), routeKey);
     if (index >= 0) {
         m_tabs->setCurrentIndex(index);
         ++m_nextSession;

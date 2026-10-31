@@ -220,7 +220,7 @@ void WorkbenchPage::startScript()
                 // A request queued just before the script stopped must not send.
                 if (stopped->load()) {
                     sendResult.error = AppI18n::text("脚本已停止");
-                } else if (generation != page->m_connectionGeneration || !page->m_serial.isOpen()) {
+                } else if (generation != page->m_connectionGeneration || !page->m_link.isOpen()) {
                     sendResult.error = AppI18n::text("串口已断开");
                 } else {
                     sendResult.ok = page->sendScriptPayload(payload, mode, lineEnding, &sendResult.error);
@@ -324,7 +324,7 @@ bool WorkbenchPage::sendScriptPayload(const QString &payloadText, const QString 
     if (error) {
         error->clear();
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         if (error) {
             *error = AppI18n::text("请先连接串口");
         }
@@ -374,7 +374,7 @@ bool WorkbenchPage::sendScriptPayload(const QString &payloadText, const QString 
     }
 
     QString writeError;
-    if (!m_serial.writeData(output, &writeError)) {
+    if (!m_link.writeData(output, &writeError)) {
         if (error) {
             *error = writeError;
         }

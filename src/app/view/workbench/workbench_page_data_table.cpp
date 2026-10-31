@@ -1,6 +1,8 @@
 #include "app/view/workbench/workbench_page_internal.h"
 
 #include "app/core/app_i18n.h"
+#include "app/view/ascii_table_dialog.h"
+#include "app/view/convert_dialog.h"
 #include "app/view/data_table_window.h"
 
 #include <QtGui/QTextBlock>
@@ -131,4 +133,24 @@ void WorkbenchPage::locateRecordInTerminal(qint64 recordId)
     m_terminalView->setTextCursor(cursor);
     m_terminalView->ensureCursorVisible();
     m_terminalView->setFocus(Qt::OtherFocusReason);
+}
+
+void WorkbenchPage::showConvertDialog()
+{
+    if (!m_convertDialog) {
+        m_convertDialog = new ConvertDialog(this);
+    }
+    m_convertDialog->show();
+    m_convertDialog->raise();
+    m_convertDialog->activateWindow();
+}
+
+void WorkbenchPage::showAsciiTableDialog()
+{
+    if (!m_asciiTableDialog) {
+        m_asciiTableDialog = new AsciiTableDialog(this);
+    }
+    m_asciiTableDialog->show();
+    m_asciiTableDialog->raise();
+    m_asciiTableDialog->activateWindow();
 }

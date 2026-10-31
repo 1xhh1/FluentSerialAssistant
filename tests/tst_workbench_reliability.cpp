@@ -29,7 +29,7 @@ class WorkbenchReliabilityTest : public QObject
         page.refreshPorts();
         page.m_portCombo->setCurrentIndex(page.m_portCombo->findData(port));
         page.m_connectButton->click();
-        QVERIFY(page.m_serial.isOpen());
+        QVERIFY(page.m_link.isOpen());
     }
 
     static void savePacket(WorkbenchPage &page, const QString &name)
@@ -435,7 +435,7 @@ class WorkbenchReliabilityTest : public QObject
         QVERIFY(device.writeData(QByteArrayLiteral("captured")));
         QTRY_COMPARE(page.controlStatus().receivedBytes, 8);
         page.m_connectButton->click();
-        QVERIFY(!page.m_serial.isOpen());
+        QVERIFY(!page.m_link.isOpen());
         QCOMPARE(files().size(), 1);
         QFile capture(QDir(folder.path()).filePath(files().first()));
         QVERIFY(capture.open(QIODevice::ReadOnly));
@@ -466,7 +466,7 @@ class WorkbenchReliabilityTest : public QObject
         WorkbenchPage page(nullptr, false, false);
         SerialPortConfig config;
         config.portName = QString::fromLocal8Bit(portName);
-        QVERIFY2(page.m_serial.openPort(config), qPrintable(page.m_serial.errorString()));
+        QVERIFY2(page.m_link.openLink(config), qPrintable(page.m_link.errorString()));
         page.m_filePathEdit->setText(file.fileName());
         constexpr int ChunkSize = 4096;
         setNumberEditValue(page.m_fileChunkSizeEdit, ChunkSize, 1, 65536);
@@ -478,7 +478,7 @@ class WorkbenchReliabilityTest : public QObject
         QTest::qWait(300);
         QVERIFY(page.m_fileSendFile.isOpen());
         QVERIFY(page.m_fileSendSent < page.m_fileSendTotal);
-        QVERIFY(page.m_serial.bytesToWrite() <= ChunkSize);
+        QVERIFY(page.m_link.bytesToWrite() <= ChunkSize);
 
         // Drain the other end promptly; a macOS pseudo-terminal buffers only 1 KiB.
         QByteArray received;
@@ -495,7 +495,7 @@ class WorkbenchReliabilityTest : public QObject
         QVERIFY(!page.m_fileSendFile.isOpen());
         QCOMPARE(received, contents);
         QCOMPARE(page.m_fileSendSent, page.m_fileSendTotal);
-        page.m_serial.closePort();
+        page.m_link.closeLink();
 #else
         QSKIP("Pseudo-terminal serial integration is available on Unix platforms");
 #endif
@@ -539,6 +539,55 @@ class WorkbenchReliabilityTest : public QObject
         for (auto *page : pages) {
             QCOMPARE(page->m_records.size(), 1000);
         }
+    }
+    void millionFrameReceiveStressLosesNothing()
+    {
+        WorkbenchPage page(nullptr, false, false);
+        page.m_flushTimer.stop();
+        page.m_statsTimer.stop();
+        page.m_timestampCheck->setChecked(false);
+        page.m_autoFrameBreakCheck->setChecked(true);
+        page.m_frameModeCombo->setCurrentIndex(page.m_frameModeCombo->findData(QStringLiteral("tail")));
+        page.m_framePatternEdit->setText(QStringLiteral("0A"));
+
+        constexpr int totalFrames = 1000000;
+        QElapsedTimer timer;
+        timer.start();
+        QByteArray chunk;
+        qint64 totalBytes = 0;
+        for (int frame = 1; frame <= totalFrames; ++frame) {
+            chunk.append(QString::fromLatin1("%1\n").arg(frame, 7, 10, QLatin1Char('0')).toUtf8());
+            if (chunk.size() >= 65536) {
+                totalBytes += chunk.size();
+                page.handleReceivedData(chunk);
+                chunk.clear();
+            }
+        }
+        if (!chunk.isEmpty()) {
+            totalBytes += chunk.size();
+            page.handleReceivedData(chunk);
+        }
+        const qint64 ingestMs = timer.elapsed();
+
+        // One render of the retained tail proves the display pipeline survives
+        // the flood with the document cap enforced.
+        page.flushPendingLines();
+        QCoreApplication::processEvents();
+        const qint64 totalMs = timer.elapsed();
+
+        // Byte counters must account for every byte fed to the port.
+        QCOMPARE(page.m_rxCount, totalBytes);
+        // Per-frame integrity: every appended record is either still retained
+        // or was trimmed by the bounded history, never dropped silently.
+        QCOMPARE(page.m_firstRecordIndex + page.m_records.size(), qint64(totalFrames));
+        QVERIFY(page.m_records.size() <= page.maxRecordCount());
+        // The newest frame survives trimming with its full payload.
+        const QString lastText = page.m_records.last().terminalText;
+        QVERIFY(lastText.contains(QStringLiteral("1000000")));
+        QVERIFY(page.m_terminalView->toPlainText().endsWith(QStringLiteral("1000000")));
+        qInfo("million-frame stress: %lld frames / %lld bytes in %lld ms (ingest %lld ms)", qint64(totalFrames),
+              totalBytes, totalMs, ingestMs);
+        QVERIFY2(totalMs < 120000, qPrintable(QStringLiteral("stress run took %1 ms").arg(totalMs)));
     }
 };
 

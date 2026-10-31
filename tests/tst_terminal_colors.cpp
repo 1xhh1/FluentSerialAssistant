@@ -405,7 +405,7 @@ class TerminalColorsTest : public QObject
         page.flushPendingLines();
         auto *document = page.m_terminalView->document();
         const QString text = document->toPlainText();
-        QCOMPARE(text, QStringLiteral("«   ERROR details\n« ordinary\n«   ERROR again"));
+        QCOMPARE(text, QStringLiteral("«Rx   ERROR details\n«Rx ordinary\n«Rx   ERROR again"));
         QCOMPARE(formatAt(document, text.indexOf(QStringLiteral("details"))).foreground().color(), red);
         QCOMPARE(formatAt(document, text.indexOf(QStringLiteral("again"))).foreground().color(), red);
         QVERIFY(formatAt(document, text.indexOf(QStringLiteral("ordinary"))).foreground().color() != red);
@@ -520,7 +520,11 @@ class TerminalColorsTest : public QObject
         QCOMPARE(AppTerminal::toJson(restored.m_terminalColorConfig), AppTerminal::toJson(config));
         restored.handleReceivedData(QByteArray("ERROR restored"));
         restored.flushPendingLines();
-        QCOMPARE(formatAt(restored.m_terminalView->document(), 2).foreground().color(), red);
+        const QString restoredText = restored.m_terminalView->document()->toPlainText();
+        QCOMPARE(formatAt(restored.m_terminalView->document(), restoredText.indexOf(QStringLiteral("ERROR")))
+                     .foreground()
+                     .color(),
+                 red);
         WorkbenchPage copied(nullptr, false, false);
         preparePage(copied);
         QCOMPARE(AppTerminal::toJson(copied.m_terminalColorConfig), AppTerminal::toJson(config));
@@ -528,7 +532,11 @@ class TerminalColorsTest : public QObject
         QCOMPARE(AppTerminal::toJson(copied.m_terminalColorConfig), AppTerminal::toJson(config));
         copied.handleReceivedData(QByteArray("ERROR copied"));
         copied.flushPendingLines();
-        QCOMPARE(formatAt(copied.m_terminalView->document(), 2).foreground().color(), red);
+        const QString copiedText = copied.m_terminalView->document()->toPlainText();
+        QCOMPARE(formatAt(copied.m_terminalView->document(), copiedText.indexOf(QStringLiteral("ERROR")))
+                     .foreground()
+                     .color(),
+                 red);
         stale.reloadTerminalColors();
         QCOMPARE(AppTerminal::toJson(stale.m_terminalColorConfig), AppTerminal::toJson(config));
     }

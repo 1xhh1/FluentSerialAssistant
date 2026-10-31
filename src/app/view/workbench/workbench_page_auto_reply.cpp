@@ -244,7 +244,7 @@ void WorkbenchPage::moveSelectedAutoReplyRule(int direction)
 
 void WorkbenchPage::handleAutoReplyReceivedData(const QByteArray &data)
 {
-    if (data.isEmpty() || m_autoReplyRules.isEmpty() || !m_serial.isOpen()) {
+    if (data.isEmpty() || m_autoReplyRules.isEmpty() || !m_link.isOpen()) {
         return;
     }
 
@@ -306,7 +306,7 @@ bool WorkbenchPage::autoReplyRuleMatches(const AutoReplyRule &rule, const QByteA
 
 void WorkbenchPage::sendAutoReplyRule(const AutoReplyRule &rule)
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         if (m_autoReplyStatusLabel) {
             m_autoReplyStatusLabel->setText(AppI18n::text("串口已断开，自动应答未发送"));
         }
@@ -331,7 +331,7 @@ void WorkbenchPage::sendAutoReplyRule(const AutoReplyRule &rule)
     }
 
     QString error;
-    if (!m_serial.writeData(output, &error)) {
+    if (!m_link.writeData(output, &error)) {
         if (m_autoReplyStatusLabel) {
             m_autoReplyStatusLabel->setText(AppI18n::text("自动应答发送失败：%1").arg(error));
         }

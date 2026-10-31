@@ -112,12 +112,18 @@ add_executable(FluentSerialAssistant
     src/app/core/update_installer_p.h
     src/app/core/update_manager.cpp
     src/app/core/update_manager.h
+    src/app/serial/link_config.h
+    src/app/serial/link_controller.cpp
     src/app/serial/serial_controller.cpp
     src/app/serial/serial_controller.h
     src/app/serial/virtual_serial_pair.cpp
     src/app/serial/virtual_serial_pair.h
     src/app/view/app_page.cpp
     src/app/view/app_page.h
+    src/app/view/ascii_table_dialog.cpp
+    src/app/view/ascii_table_dialog.h
+    src/app/view/convert_dialog.cpp
+    src/app/view/convert_dialog.h
     src/app/view/data_table_model.cpp
     src/app/view/data_table_model.h
     src/app/view/data_table_window.cpp

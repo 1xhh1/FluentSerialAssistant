@@ -6,6 +6,7 @@
 #include "app/core/protocol_template.h"
 #include "app/core/terminal_color_rules.h"
 #include "app/core/text_encoding.h"
+#include "app/serial/link_controller.h"
 #include "app/serial/serial_controller.h"
 #include "app/view/app_page.h"
 
@@ -19,6 +20,8 @@
 #include <QtCore/QVariantList>
 #include <QtCore/QVector>
 #include <QtGui/QColor>
+#include <QtGui/QShortcut>
+#include <QtWidgets/QKeySequenceEdit>
 
 class QEvent;
 class QHideEvent;
@@ -31,6 +34,8 @@ class ScriptRunner;
 struct DataTableRecord;
 class QuickPlotWindow;
 class ProtocolTemplateWindow;
+class ConvertDialog;
+class AsciiTableDialog;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -52,6 +57,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
 
     AppControl::SessionStatus controlStatus() const override;
     bool controlConnect(const SerialPortConfig &config, QString *error) override;
+    bool controlConnectLink(const LinkConfig &config, QString *error) override;
     void controlDisconnect() override;
     bool controlSendBytes(const QByteArray &data, const QString &source, QString *error) override;
     QList<AppControl::RecordSnapshot> controlRecords(int limit, const QString &direction) const override;
@@ -137,6 +143,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
         QString mode;
         QString payload;
         QString lineEnding;
+        QString hotkey;
         bool enabled = true;
     };
 
@@ -201,6 +208,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
 
     void setupSerialSignals();
     void refreshPorts();
+    LinkConfig currentLinkConfig() const;
+    bool hasLastLinkConfig() const;
     void restoreSettings();
     void applyTerminalFont(const QString &family = QString());
     void updateConnectionUi(bool connected);
@@ -220,6 +229,9 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void moveSelectedPacket(int direction);
     void sendSelectedPacket();
     void sendSelectedPackets();
+    void sendPacketByShortcut(int row);
+    void rebuildPacketShortcuts();
+    void saveSendAreaAsPacket();
     void sendPacket(int row);
     bool sendPacketPayload(const SendPacket &packet);
     void importSendPackets();
@@ -236,6 +248,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     QByteArray selectedLineEnding() const;
     QByteArray lineEndingForKey(const QString &key) const;
     QString currentDisplayMode() const;
+    QString terminalTimestampFormat() const;
     QString selectedLineEndingKey() const;
     QString receiveEncodingKey() const;
     QString sendEncodingKey() const;
@@ -277,6 +290,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void fillModbusRequest();
     void sendModbusRequest();
     void updateModbusUi();
+    void updateModbusStatusHint();
     void updateModbusResponseStatus(const QByteArray &data);
     void setModbusStatusText(const QString &text);
     bool recordMatchesTerminalFilter(const SessionRecord &record) const;
@@ -401,10 +415,12 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void updateAutoLogStatus();
     void showQuickPlotWindow();
     QuickPlotWindow *createQuickPlotWindow(const AppPlot::ParserConfig &config,
-                                          const AppProtocol::ProtocolTemplate *protocolTemplate = nullptr);
+                                           const AppProtocol::ProtocolTemplate *protocolTemplate = nullptr);
     void appendQuickPlotRecord(const SessionRecord &record);
     void showDataTableWindow();
     void refreshDataTableWindow();
+    void showConvertDialog();
+    void showAsciiTableDialog();
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -423,7 +439,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     int maxRecordCount() const;
     static int savedMaxRecordCount();
 
-    SerialController m_serial;
+    LinkController m_link;
     QList<SerialPortDescriptor> m_ports;
     QList<SessionRecord> m_records;
     // Stable table IDs survive removal of old session records.
@@ -447,7 +463,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     bool m_terminalStreamLastCR = false;
     AppTerminal::ColorConfig m_terminalColorConfig;
     AppTerminal::ColorMatcher m_terminalColorMatcher;
-    SerialPortConfig m_lastConfig;
+    LinkConfig m_lastConfig;
     QByteArray m_rxFrameBuffer;
     AppTextEncoding::StreamDecoder m_rxStreamDecoder;
     QByteArray m_autoReplyBuffer;
@@ -495,6 +511,11 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::ScrollArea *m_sideScroll = nullptr;
     QWidget *m_sidePanel = nullptr;
     FluentQt::ComboBox *m_portCombo = nullptr;
+    FluentQt::ComboBox *m_linkTypeCombo = nullptr;
+    FluentQt::LineEdit *m_hostEdit = nullptr;
+    FluentQt::LineEdit *m_portEdit = nullptr;
+    QWidget *m_serialLinkRows = nullptr;
+    QWidget *m_networkLinkRows = nullptr;
     FluentQt::EditableComboBox *m_baudCombo = nullptr;
     FluentQt::ComboBox *m_dataBitsCombo = nullptr;
     FluentQt::ComboBox *m_parityCombo = nullptr;
@@ -519,6 +540,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::ComboBox *m_sendEncodingCombo = nullptr;
     FluentQt::ComboBox *m_checksumAlgorithmCombo = nullptr;
     FluentQt::ComboBox *m_checksumByteOrderCombo = nullptr;
+    FluentQt::ComboBox *m_modbusModeCombo = nullptr;
     FluentQt::ComboBox *m_modbusFunctionCombo = nullptr;
     FluentQt::ComboBox *m_autoLogFormatCombo = nullptr;
     FluentQt::ComboBox *m_historyCombo = nullptr;
@@ -553,6 +575,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::PlainTextEdit *m_sendEdit = nullptr;
     FluentQt::TextBrowser *m_terminalView = nullptr;
     DataTableWindow *m_dataTableWindow = nullptr;
+    ConvertDialog *m_convertDialog = nullptr;
+    AsciiTableDialog *m_asciiTableDialog = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.
@@ -589,6 +613,9 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::PushButton *m_packetBatchSendButton = nullptr;
     FluentQt::PushButton *m_packetImportButton = nullptr;
     FluentQt::PushButton *m_packetExportButton = nullptr;
+    FluentQt::PushButton *m_packetFromSendButton = nullptr;
+    QKeySequenceEdit *m_packetHotkeyEdit = nullptr;
+    QList<QShortcut *> m_packetShortcuts;
     FluentQt::PushButton *m_macroSaveButton = nullptr;
     FluentQt::PushButton *m_macroLoadButton = nullptr;
     FluentQt::PushButton *m_macroDeleteButton = nullptr;
@@ -613,10 +640,12 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::CheckBox *m_autoLogCheck = nullptr;
     FluentQt::CheckBox *m_autoScrollCheck = nullptr;
     FluentQt::CheckBox *m_timestampCheck = nullptr;
+    FluentQt::ComboBox *m_timestampFormatCombo = nullptr;
     FluentQt::CheckBox *m_pauseCheck = nullptr;
     FluentQt::CheckBox *m_autoFrameBreakCheck = nullptr;
     FluentQt::CheckBox *m_protocolEnabledCheck = nullptr;
     FluentQt::CheckBox *m_hexSendCheck = nullptr;
+    FluentQt::CheckBox *m_escapeParseCheck = nullptr;
     FluentQt::CheckBox *m_showTxCheck = nullptr;
     FluentQt::CheckBox *m_loopCheck = nullptr;
     FluentQt::CheckBox *m_packetEnabledCheck = nullptr;

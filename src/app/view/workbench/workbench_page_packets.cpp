@@ -30,11 +30,15 @@ void WorkbenchPage::updatePacketTable(int selectedRow)
         const QString group = packet.group.isEmpty() ? AppI18n::text("默认") : packet.group;
         const QString status = packet.enabled ? QString() : AppI18n::text(" [停用]");
         const QString suffix = note.isEmpty() ? QString() : QStringLiteral(" · %1").arg(note);
+        const QString hotkey =
+            packet.hotkey.isEmpty()
+                ? QString()
+                : QStringLiteral(" · %1").arg(QKeySequence(packet.hotkey).toString(QKeySequence::NativeText));
 
         auto *item = new QListWidgetItem(icon(packet.enabled ? FluentIcon::CommandPrompt : FluentIcon::Cancel),
-                                         QStringLiteral("%1 / %2%3\n%4 · %5 · %6%7")
+                                         QStringLiteral("%1 / %2%3\n%4 · %5 · %6%7%8")
                                              .arg(group, packet.name, status, modeLabel(packet.mode),
-                                                  lineEndingLabel(packet.lineEnding), payload, suffix));
+                                                  lineEndingLabel(packet.lineEnding), payload, suffix, hotkey));
         item->setData(Qt::UserRole, row);
         item->setData(Qt::AccessibleDescriptionRole, AppI18n::text("分组：%1\n名称：%2\n备注：%3\n内容：%4")
                                                          .arg(group, packet.name, packet.note, packet.payload));
@@ -47,6 +51,7 @@ void WorkbenchPage::updatePacketTable(int selectedRow)
             qBound(0, selectedRow >= 0 ? selectedRow : m_packetList->currentRow(), m_sendPackets.size() - 1);
         m_packetList->setCurrentRow(row);
     }
+    rebuildPacketShortcuts();
     updatePacketActionState();
 }
 
@@ -102,10 +107,10 @@ void WorkbenchPage::updatePacketActionState()
         m_packetDeleteButton->setEnabled(!rows.isEmpty());
     }
     if (m_packetSendButton) {
-        m_packetSendButton->setEnabled(hasCurrent && m_sendPackets.at(row).enabled && m_serial.isOpen());
+        m_packetSendButton->setEnabled(hasCurrent && m_sendPackets.at(row).enabled && m_link.isOpen());
     }
     if (m_packetBatchSendButton) {
-        m_packetBatchSendButton->setEnabled(hasEnabledSelection && m_serial.isOpen());
+        m_packetBatchSendButton->setEnabled(hasEnabledSelection && m_link.isOpen());
     }
     if (m_packetUpButton) {
         m_packetUpButton->setEnabled(rows.size() == 1 && rows.first() > 0);
@@ -136,6 +141,9 @@ void WorkbenchPage::applyPacket(int row)
         m_packetEnabledCheck->setChecked(packet.enabled);
     }
     m_packetPayloadEdit->setPlainText(packet.payload);
+    if (m_packetHotkeyEdit) {
+        m_packetHotkeyEdit->setKeySequence(QKeySequence(packet.hotkey));
+    }
     const int packetModeIndex = m_packetModeCombo->findData(packet.mode);
     if (packetModeIndex >= 0) {
         m_packetModeCombo->setCurrentIndex(packetModeIndex);
@@ -180,6 +188,8 @@ void WorkbenchPage::saveCurrentPacket()
     packet.mode = m_packetModeCombo->currentData().toString();
     packet.payload = payload;
     packet.lineEnding = m_packetLineEndingCombo->currentData().toString();
+    packet.hotkey =
+        m_packetHotkeyEdit ? m_packetHotkeyEdit->keySequence().toString(QKeySequence::PortableText) : QString();
     packet.enabled = !m_packetEnabledCheck || m_packetEnabledCheck->isChecked();
 
     int targetRow = -1;
@@ -248,7 +258,7 @@ void WorkbenchPage::sendSelectedPacket() { sendPacket(m_packetList ? m_packetLis
 
 void WorkbenchPage::sendSelectedPackets()
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法批量发送"), AppI18n::text("请先连接串口"));
         return;
     }
@@ -292,7 +302,7 @@ void WorkbenchPage::sendPacket(int row)
     if (row < 0 || row >= m_sendPackets.size()) {
         return;
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法发送"), AppI18n::text("请先连接串口"));
         return;
     }
@@ -323,7 +333,7 @@ bool WorkbenchPage::sendPacketPayload(const SendPacket &packet)
     }
 
     QString error;
-    if (!m_serial.writeData(output, &error)) {
+    if (!m_link.writeData(output, &error)) {
         showError(AppI18n::text("发送失败"), error);
         return false;
     }
@@ -339,7 +349,7 @@ bool WorkbenchPage::sendPacketPayload(const SendPacket &packet)
 
 bool WorkbenchPage::sendCurrentPayload()
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法发送"), AppI18n::text("请先连接串口"));
         return false;
     }
@@ -360,7 +370,7 @@ bool WorkbenchPage::sendCurrentPayload()
     }
 
     QString error;
-    if (!m_serial.writeData(output, &error)) {
+    if (!m_link.writeData(output, &error)) {
         showError(AppI18n::text("发送失败"), error);
         return false;
     }
@@ -477,6 +487,7 @@ void WorkbenchPage::loadSendPackets()
         packet.mode = object.value(QStringLiteral("mode")).toString(QStringLiteral("text"));
         packet.payload = object.value(QStringLiteral("payload")).toString();
         packet.lineEnding = object.value(QStringLiteral("lineEnding")).toString(QStringLiteral("none"));
+        packet.hotkey = object.value(QStringLiteral("hotkey")).toString();
         packet.enabled = object.value(QStringLiteral("enabled")).toBool(true);
         if (packet.name.isEmpty() || packet.payload.isEmpty()) {
             continue;
@@ -507,6 +518,7 @@ void WorkbenchPage::saveSendPackets() const
         object.insert(QStringLiteral("mode"), packet.mode);
         object.insert(QStringLiteral("payload"), packet.payload);
         object.insert(QStringLiteral("lineEnding"), packet.lineEnding);
+        object.insert(QStringLiteral("hotkey"), packet.hotkey);
         object.insert(QStringLiteral("enabled"), packet.enabled);
         array.append(object);
     }
@@ -571,6 +583,7 @@ void WorkbenchPage::importSendPackets()
         packet.mode = object.value(QStringLiteral("mode")).toString(QStringLiteral("text"));
         packet.payload = object.value(QStringLiteral("payload")).toString();
         packet.lineEnding = object.value(QStringLiteral("lineEnding")).toString(QStringLiteral("none"));
+        packet.hotkey = object.value(QStringLiteral("hotkey")).toString();
         packet.enabled = object.value(QStringLiteral("enabled")).toBool(true);
 
         if (packet.name.isEmpty() || packet.payload.isEmpty()) {
@@ -655,6 +668,7 @@ void WorkbenchPage::exportSendPackets()
         object.insert(QStringLiteral("mode"), packet.mode);
         object.insert(QStringLiteral("payload"), packet.payload);
         object.insert(QStringLiteral("lineEnding"), packet.lineEnding);
+        object.insert(QStringLiteral("hotkey"), packet.hotkey);
         object.insert(QStringLiteral("enabled"), packet.enabled);
         array.append(object);
     }
@@ -677,4 +691,79 @@ void WorkbenchPage::exportSendPackets()
 
     settings.setValue(QStringLiteral("export/folder"), QFileInfo(path).absolutePath());
     showSuccess(AppI18n::text("导出完成"), path);
+}
+
+void WorkbenchPage::rebuildPacketShortcuts()
+{
+    for (QShortcut *shortcut : std::as_const(m_packetShortcuts)) {
+        shortcut->deleteLater();
+    }
+    m_packetShortcuts.clear();
+    if (!isEnabled()) {
+        return;
+    }
+
+    for (int row = 0; row < m_sendPackets.size(); ++row) {
+        const SendPacket &packet = m_sendPackets.at(row);
+        const QKeySequence sequence(packet.hotkey);
+        if (packet.hotkey.isEmpty() || sequence.isEmpty()) {
+            continue;
+        }
+        auto *shortcut = new QShortcut(sequence, this);
+        shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(shortcut, &QShortcut::activated, this, [this, row]() { sendPacketByShortcut(row); });
+        m_packetShortcuts.append(shortcut);
+    }
+}
+
+void WorkbenchPage::sendPacketByShortcut(int row)
+{
+    if (row < 0 || row >= m_sendPackets.size()) {
+        return;
+    }
+    // Hotkeys fire while typing in the terminal, so a disconnected link stays
+    // silent instead of interrupting with a warning dialog.
+    if (!m_link.isOpen() || !m_sendPackets.at(row).enabled) {
+        return;
+    }
+    sendPacketPayload(m_sendPackets.at(row));
+}
+
+void WorkbenchPage::saveSendAreaAsPacket()
+{
+    const QString payload = m_sendEdit->toPlainText();
+    if (payload.trimmed().isEmpty()) {
+        showWarning(AppI18n::text("无法保存"), AppI18n::text("发送内容为空"));
+        return;
+    }
+
+    SendPacket packet;
+    packet.name = payload.simplified();
+    if (packet.name.size() > 18) {
+        packet.name = packet.name.left(18) + QStringLiteral("...");
+    }
+    packet.mode = m_hexSendCheck->isChecked() ? QStringLiteral("hex") : QStringLiteral("text");
+    packet.payload = payload;
+    packet.lineEnding = selectedLineEndingKey();
+    packet.enabled = true;
+
+    for (int i = 0; i < m_sendPackets.size(); ++i) {
+        const SendPacket &existing = m_sendPackets.at(i);
+        if (existing.group == packet.group && existing.name == packet.name && existing.payload == packet.payload &&
+            existing.mode == packet.mode) {
+            updatePacketTable(i);
+            applyPacket(i);
+            showInfo(AppI18n::text("已存在相同快捷包"), packet.name);
+            return;
+        }
+    }
+    if (m_sendPackets.size() >= MaxSendPacketItems) {
+        m_sendPackets.removeLast();
+    }
+    m_sendPackets.append(packet);
+    const int row = m_sendPackets.size() - 1;
+    updatePacketTable(row);
+    applyPacket(row);
+    saveSendPackets();
+    showSuccess(AppI18n::text("已保存快捷包"), packet.name);
 }

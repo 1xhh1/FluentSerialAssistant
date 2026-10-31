@@ -210,12 +210,34 @@ class VirtualSerialWorkbenchTest : public QObject
         WorkbenchPage page(nullptr, true, true);
         page.m_portCombo->setCurrentIndex(page.m_portCombo->findData(VirtualSerialPair::portBName()));
         QTest::qWait(300);
-        QVERIFY(!page.m_serial.isOpen());
+        QVERIFY(!page.m_link.isOpen());
         VirtualSerialPair::instance()->setEnabled(false);
         WorkbenchPage disabled(nullptr, true, true);
         QVERIFY(disabled.currentSerialConfig().portName.isEmpty());
         QTest::qWait(300);
-        QVERIFY(!disabled.m_serial.isOpen());
+        QVERIFY(!disabled.m_link.isOpen());
+    }
+
+    void enabledPairListsEndpointsInPortCombo()
+    {
+        VirtualSerialPair::instance()->setEnabled(false);
+        WorkbenchPage offline(nullptr, false, false);
+        offline.refreshPorts();
+        QVERIFY(offline.m_portCombo->findData(VirtualSerialPair::portAName()) < 0);
+        QVERIFY(offline.m_portCombo->findData(VirtualSerialPair::portBName()) < 0);
+
+        VirtualSerialPair::instance()->setEnabled(true);
+        offline.refreshPorts();
+        const int indexA = offline.m_portCombo->findData(VirtualSerialPair::portAName());
+        const int indexB = offline.m_portCombo->findData(VirtualSerialPair::portBName());
+        QVERIFY(indexA >= 0);
+        QVERIFY(indexB >= 0);
+
+        // The endpoints disappear again as soon as the pair is switched off.
+        VirtualSerialPair::instance()->setEnabled(false);
+        offline.refreshPorts();
+        QCOMPARE(offline.m_portCombo->findData(VirtualSerialPair::portAName()), -1);
+        QCOMPARE(offline.m_portCombo->findData(VirtualSerialPair::portBName()), -1);
     }
 
     void settingsSwitchStaysSynchronizedAndTranslates()

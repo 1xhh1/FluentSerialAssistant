@@ -248,6 +248,14 @@
         <translation>CRC error</translation>
     </message>
     <message>
+        <source>LRC 正确</source>
+        <translation>LRC OK</translation>
+    </message>
+    <message>
+        <source>LRC 错误</source>
+        <translation>LRC error</translation>
+    </message>
+    <message>
         <source>站号范围应为 1-247</source>
         <translation>Slave ID must be 1-247</translation>
     </message>
@@ -1228,6 +1236,22 @@ Expected response: %2</translation>
     <message>
         <source>生成帧会自动附加 CRC16-Modbus</source>
         <translation>Generated frames automatically append CRC16-Modbus</translation>
+    </message>
+    <message>
+        <source>生成帧会自动附加 LRC 校验</source>
+        <translation>Generated frames automatically append an LRC checksum</translation>
+    </message>
+    <message>
+        <source>模式</source>
+        <translation>Mode</translation>
+    </message>
+    <message>
+        <source>RTU</source>
+        <translation>RTU</translation>
+    </message>
+    <message>
+        <source>ASCII</source>
+        <translation>ASCII</translation>
     </message>
     <message>
         <source>Modbus 帧生成失败</source>
@@ -2924,6 +2948,190 @@ Installation log: %2</translation>
     <message>
         <source>当前 %1 B / 需要 %2 B</source>
         <translation>Current %1 B / Required %2 B</translation>
+    </message>
+    <message>
+        <source>转换计算器</source>
+        <translation>Convert Calculator</translation>
+    </message>
+    <message>
+        <source>转义符解析</source>
+        <translation>Escape parsing</translation>
+    </message>
+    <message>
+        <source>文本发送时解析 \r \n \t \0 \\ \xHH 转义序列</source>
+        <translation>Parse \r \n \t \0 \\ \xHH escape sequences when sending text</translation>
+    </message>
+    <message>
+        <source>转义符输入无效</source>
+        <translation>Invalid escape input</translation>
+    </message>
+    <message>
+        <source>转义符后缺少字符</source>
+        <translation>Missing character after escape</translation>
+    </message>
+    <message>
+        <source>\x 后缺少 1-2 位十六进制数字</source>
+        <translation>Missing 1-2 hex digits after \x</translation>
+    </message>
+    <message>
+        <source>不支持的转义序列</source>
+        <translation>Unsupported escape sequence</translation>
+    </message>
+    <message>
+        <source>快捷键</source>
+        <translation>Hotkey</translation>
+    </message>
+    <message>
+        <source>虚拟串口</source>
+        <translation>virtual port</translation>
+    </message>
+    <message>
+        <source>时间戳格式</source>
+        <translation>Timestamp format</translation>
+    </message>
+    <message>
+        <source>时:分:秒</source>
+        <translation>HH:mm:ss</translation>
+    </message>
+    <message>
+        <source>时:分:秒.毫秒</source>
+        <translation>HH:mm:ss.zzz</translation>
+    </message>
+    <message>
+        <source>年/月/日 时:分:秒</source>
+        <translation>yyyy/MM/dd HH:mm:ss</translation>
+    </message>
+    <message>
+        <source>年/月/日 时:分:秒.毫秒</source>
+        <translation>yyyy/MM/dd HH:mm:ss.zzz</translation>
+    </message>
+    <message>
+        <source>按下快捷键立即发送该常用包</source>
+        <translation>Press the hotkey to send this packet immediately</translation>
+    </message>
+    <message>
+        <source>存为快捷包</source>
+        <translation>Save as quick packet</translation>
+    </message>
+    <message>
+        <source>已保存快捷包</source>
+        <translation>Quick packet saved</translation>
+    </message>
+    <message>
+        <source>已存在相同快捷包</source>
+        <translation>Identical quick packet already exists</translation>
+    </message>
+    <message>
+        <source>传输</source>
+        <translation>Transport</translation>
+    </message>
+    <message>
+        <source>串口</source>
+        <translation>Serial port</translation>
+    </message>
+    <message>
+        <source>服务器</source>
+        <translation>Server</translation>
+    </message>
+    <message>
+        <source>客户端</source>
+        <translation>Client</translation>
+    </message>
+    <message>
+        <source>网络参数无效</source>
+        <translation>Invalid network parameters</translation>
+    </message>
+    <message>
+        <source>请填写有效的主机地址和端口</source>
+        <translation>Enter a valid host address and port</translation>
+    </message>
+    <message>
+        <source>ASCII字符表</source>
+        <translation>ASCII Table</translation>
+    </message>
+    <message>
+        <source>数值转换</source>
+        <translation>Number Conversion</translation>
+    </message>
+    <message>
+        <source>输入模式</source>
+        <translation>Input Mode</translation>
+    </message>
+    <message>
+        <source>输入值</source>
+        <translation>Input Value</translation>
+    </message>
+    <message>
+        <source>输入要转换的值</source>
+        <translation>Enter a value to convert</translation>
+    </message>
+    <message>
+        <source>小端序</source>
+        <translation>Little-Endian</translation>
+    </message>
+    <message>
+        <source>大端序</source>
+        <translation>Big-Endian</translation>
+    </message>
+    <message>
+        <source>输入无效，请检查格式</source>
+        <translation>Invalid input, check the format</translation>
+    </message>
+    <message>
+        <source>输入无效：%1</source>
+        <translation>Invalid input: %1</translation>
+    </message>
+    <message>
+        <source>项目</source>
+        <translation>Item</translation>
+    </message>
+    <message>
+        <source>ASCII ↔ HEX 转换</source>
+        <translation>ASCII ↔ HEX Conversion</translation>
+    </message>
+    <message>
+        <source>文本转 HEX</source>
+        <translation>Text to HEX</translation>
+    </message>
+    <message>
+        <source>HEX 转文本</source>
+        <translation>HEX to Text</translation>
+    </message>
+    <message>
+        <source>输入文本</source>
+        <translation>Enter text</translation>
+    </message>
+    <message>
+        <source>输入 HEX 字节，例如 31 32 33</source>
+        <translation>Enter HEX bytes, e.g. 31 32 33</translation>
+    </message>
+    <message>
+        <source>DEC %1位 无符号</source>
+        <translation>DEC %1-bit Unsigned</translation>
+    </message>
+    <message>
+        <source>DEC %1位 有符号</source>
+        <translation>DEC %1-bit Signed</translation>
+    </message>
+    <message>
+        <source>BIN %1位</source>
+        <translation>BIN %1-bit</translation>
+    </message>
+    <message>
+        <source>FLOAT %1位</source>
+        <translation>FLOAT %1-bit</translation>
+    </message>
+    <message>
+        <source>十进制</source>
+        <translation>DEC</translation>
+    </message>
+    <message>
+        <source>十六进制</source>
+        <translation>HEX</translation>
+    </message>
+    <message>
+        <source>字符</source>
+        <translation>Character</translation>
     </message>
 </context>
 <context>

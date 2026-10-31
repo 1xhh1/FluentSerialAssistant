@@ -129,6 +129,10 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::setFluentToolTip(plotButton, AppI18n::text("快速绘图"));
     auto *dataTableButton = new TransparentToolButton(icon(FluentIcon::View), section);
     AppUi::setFluentToolTip(dataTableButton, AppI18n::text("数据表格"));
+    auto *convertButton = new TransparentToolButton(icon(FluentIcon::Unit), section);
+    AppUi::setFluentToolTip(convertButton, AppI18n::text("转换计算器"));
+    auto *asciiTableButton = new TransparentToolButton(icon(FluentIcon::Font), section);
+    AppUi::setFluentToolTip(asciiTableButton, AppI18n::text("ASCII字符表"));
     auto *themeButton = new TransparentToolButton(icon(FluentIcon::Constract), section);
     AppUi::setFluentToolTip(themeButton, AppI18n::text("切换主题"));
     auto *languageButton = new TransparentToolButton(icon(FluentIcon::Language), section);
@@ -137,8 +141,8 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::installFluentToolTip(m_receiveModeButton);
     auto *settingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
     AppUi::setFluentToolTip(settingsButton, AppI18n::text("设置"));
-    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, themeButton, languageButton,
-                               m_receiveModeButton, settingsButton}) {
+    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton,
+                               themeButton, languageButton, m_receiveModeButton, settingsButton}) {
         button->setProperty("terminalHeaderAction", true);
         button->setFixedSize(CompactControlHeight, CompactControlHeight);
         button->setIconSize(QSize(16, 16));
@@ -147,8 +151,8 @@ QWidget *WorkbenchPage::createTerminalSection()
                            "min-height: 32px; max-height: 32px; padding: 0px; }");
         FluentStyleSheet::setCustomStyleSheet(button, buttonStyle, buttonStyle);
     }
-    for (ToolButton *button : {searchButton, plotButton, dataTableButton, themeButton, languageButton,
-                               m_receiveModeButton, settingsButton}) {
+    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, themeButton,
+                               languageButton, m_receiveModeButton, settingsButton}) {
         actionLayout->addWidget(button);
     }
 
@@ -293,6 +297,8 @@ QWidget *WorkbenchPage::createTerminalSection()
     m_terminalView->installEventFilter(this);
     connect(plotButton, &TransparentToolButton::clicked, this, &WorkbenchPage::showQuickPlotWindow);
     connect(dataTableButton, &TransparentToolButton::clicked, this, &WorkbenchPage::showDataTableWindow);
+    connect(convertButton, &TransparentToolButton::clicked, this, &WorkbenchPage::showConvertDialog);
+    connect(asciiTableButton, &TransparentToolButton::clicked, this, &WorkbenchPage::showAsciiTableDialog);
     connect(themeButton, &TransparentToolButton::clicked, this, []() {
         const Theme current = ThemeManager::instance()->effectiveTheme();
         const Theme next = current == Theme::Dark ? Theme::Light : Theme::Dark;
@@ -445,7 +451,7 @@ void WorkbenchPage::updateReceiveModeButton()
     const bool hexMode = isReceiveHexMode(currentDisplayMode());
     const QString currentLabel = shortcutReceiveDisplayModeLabel(hexMode);
     const QString nextLabel = shortcutReceiveDisplayModeLabel(!hexMode);
-    m_receiveModeButton->setIcon(icon(hexMode ? FluentIcon::Code : FluentIcon::Font));
+    m_receiveModeButton->setIcon(icon(hexMode ? FluentIcon::Unit : FluentIcon::Font));
     m_receiveModeButton->setToolTip(AppI18n::text("当前接收显示为 %1，点击切换为 %2").arg(currentLabel, nextLabel));
 }
 
@@ -460,22 +466,22 @@ QWidget *WorkbenchPage::createSendSection()
     m_sendEdit = new PlainTextEdit(section);
     m_sendEdit->setLineWrapMode(QPlainTextEdit::WidgetWidth);
     m_sendEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    m_sendEdit->setMinimumHeight(112);
+    m_sendEdit->setMinimumHeight(64);
     m_sendEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_sendEdit->installEventFilter(this);
     sendRow->addWidget(m_sendEdit, 1);
 
     m_sendModeButton = new PushButton(section);
     setFixedControlWidth(m_sendModeButton, 72);
-    m_sendModeButton->setMinimumHeight(112);
+    m_sendModeButton->setMinimumHeight(64);
     m_sendModeButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     sendRow->addWidget(m_sendModeButton);
 
     m_sendButton = new PrimaryPushButton(icon(FluentIcon::Send), QString(), section);
     AppUi::setFluentToolTip(m_sendButton, AppI18n::text("发送"), ToolTipPosition::Left);
-    m_sendButton->setIconSize(QSize(40, 40));
-    setFixedControlWidth(m_sendButton, 112);
-    m_sendButton->setMinimumHeight(112);
+    m_sendButton->setIconSize(QSize(28, 28));
+    setFixedControlWidth(m_sendButton, 72);
+    m_sendButton->setMinimumHeight(64);
     sendRow->addWidget(m_sendButton);
 
     root->addLayout(sendRow);

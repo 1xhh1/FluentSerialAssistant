@@ -545,7 +545,7 @@ class TerminalViewTest : public QObject
         QCoreApplication::processEvents();
 
         auto *document = page.m_terminalView->document();
-        const QString expected = QStringLiteral("« ") + QString::fromUtf8(payload);
+        const QString expected = QStringLiteral("«Rx ") + QString::fromUtf8(payload);
         QCOMPARE(page.m_terminalView->toPlainText(), expected);
         QCOMPARE(document->blockCount(), 1);
         const int narrowLines = document->firstBlock().layout()->lineCount();
@@ -625,7 +625,7 @@ class TerminalViewTest : public QObject
         page.handleReceivedData(QByteArrayLiteral("dle suffix\r\n"));
         page.flushPendingLines();
 
-        QCOMPARE(page.m_terminalView->toPlainText(), QStringLiteral("« prefix needle suffix"));
+        QCOMPARE(page.m_terminalView->toPlainText(), QStringLiteral("«Rx prefix needle suffix"));
         QCOMPARE(page.m_terminalSearchMatches.size(), 1);
         QVERIFY(validHighlightedMatches(page));
         page.m_terminalSearchNextButton->click();

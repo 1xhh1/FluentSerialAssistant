@@ -9,6 +9,11 @@ QWidget *WorkbenchPage::createModbusSection()
     auto *section = new ExpandSettingCard(FluentIcon::CommandPrompt, QStringLiteral("Modbus RTU"), QString(), this);
     auto *root = cardBody(section);
 
+    m_modbusModeCombo = new ComboBox(section);
+    m_modbusModeCombo->addItem(AppI18n::text("RTU"), QIcon(), QStringLiteral("rtu"));
+    m_modbusModeCombo->addItem(AppI18n::text("ASCII"), QIcon(), QStringLiteral("ascii"));
+    addFormRow(root, AppI18n::text("模式"), m_modbusModeCombo);
+
     m_modbusSlaveEdit = createNumberEdit(section, 1, 1, 247);
     addFormRow(root, AppI18n::text("站号"), m_modbusSlaveEdit);
 
@@ -45,11 +50,17 @@ QWidget *WorkbenchPage::createModbusSection()
     actionRow->addWidget(m_modbusSendButton);
     root->addLayout(actionRow);
 
-    m_modbusStatusLabel = new CaptionLabel(AppI18n::text("生成帧会自动附加 CRC16-Modbus"), section);
+    m_modbusStatusLabel = new CaptionLabel(QString(), section);
+    updateModbusStatusHint();
     m_modbusStatusLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
     m_modbusStatusLabel->setWordWrap(true);
     root->addWidget(m_modbusStatusLabel);
 
+    connect(m_modbusModeCombo, &ComboBox::currentIndexChanged, this, [this](int) {
+        updateModbusStatusHint();
+        AppSettings settings;
+        settings.setValue(QStringLiteral("modbus/mode"), m_modbusModeCombo->currentData().toString());
+    });
     connect(m_modbusFunctionCombo, &ComboBox::currentIndexChanged, this, [this](int) {
         updateModbusUi();
         AppSettings settings;
@@ -90,6 +101,9 @@ AppModbus::RequestConfig WorkbenchPage::currentModbusConfig() const
     config.quantity =
         static_cast<quint16>(numberEditValue(m_modbusQuantityEdit, 1, 1, AppModbus::maximumQuantity(function)));
     config.valuesText = m_modbusValuesEdit ? m_modbusValuesEdit->toPlainText() : QString();
+    config.mode = m_modbusModeCombo && m_modbusModeCombo->currentData().toString() == QStringLiteral("ascii")
+                      ? AppModbus::TransportMode::Ascii
+                      : AppModbus::TransportMode::Rtu;
     return config;
 }
 
@@ -135,7 +149,7 @@ void WorkbenchPage::fillModbusRequest()
 
 void WorkbenchPage::sendModbusRequest()
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法发送 Modbus 请求"), AppI18n::text("请先连接串口"));
         return;
     }
@@ -147,7 +161,7 @@ void WorkbenchPage::sendModbusRequest()
     }
 
     QString error;
-    if (!m_serial.writeData(frame, &error)) {
+    if (!m_link.writeData(frame, &error)) {
         showError(AppI18n::text("Modbus 发送失败"), error);
         return;
     }
@@ -159,6 +173,16 @@ void WorkbenchPage::sendModbusRequest()
     addSendHistory(historyItem);
     appendRecord(RecordDirection::Tx, frame);
     setModbusStatusText(AppI18n::text("已发送 · %1").arg(bytesToHex(frame)));
+}
+
+void WorkbenchPage::updateModbusStatusHint()
+{
+    if (m_modbusStatusLabel) {
+        const bool ascii =
+            m_modbusModeCombo && m_modbusModeCombo->currentData().toString() == QStringLiteral("ascii");
+        m_modbusStatusLabel->setText(
+            AppI18n::text(ascii ? "生成帧会自动附加 LRC 校验" : "生成帧会自动附加 CRC16-Modbus"));
+    }
 }
 
 void WorkbenchPage::updateModbusUi()

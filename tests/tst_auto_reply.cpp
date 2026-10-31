@@ -202,7 +202,7 @@ class AutoReplyTest : public QObject
         config.portName = VirtualSerialPair::portAName();
         QVERIFY2(device.openPort(config), qPrintable(device.errorString()));
         config.portName = VirtualSerialPair::portBName();
-        QVERIFY2(page.m_serial.openPort(config), qPrintable(page.m_serial.errorString()));
+        QVERIFY2(page.m_link.openLink(config), qPrintable(page.m_link.errorString()));
         QSignalSpy replies(&device, &SerialController::dataReceived);
         QVERIFY(device.writeData(QByteArrayLiteral("PI")));
         QTRY_COMPARE(page.m_autoReplyBuffer, QByteArrayLiteral("PI"));
@@ -217,7 +217,7 @@ class AutoReplyTest : public QObject
         };
         QTRY_COMPARE(received(), QByteArrayLiteral("reply0reply1reply2"));
         QVERIFY(page.m_autoReplyBuffer.isEmpty());
-        page.m_serial.closePort();
+        page.m_link.closeLink();
     }
 
     void unmatchedDataKeepsOnlyRecentBytes()
@@ -232,7 +232,7 @@ class AutoReplyTest : public QObject
         config.portName = VirtualSerialPair::portAName();
         QVERIFY(device.openPort(config));
         config.portName = VirtualSerialPair::portBName();
-        QVERIFY(page.m_serial.openPort(config));
+        QVERIFY(page.m_link.openLink(config));
         QSignalSpy replies(&device, &SerialController::dataReceived);
 
         // Every read rescans the buffer, so unmatched traffic must not pile up.
@@ -246,7 +246,7 @@ class AutoReplyTest : public QObject
         QTRY_COMPARE(replies.size(), 1);
         QCOMPARE(replies.first().first().toByteArray(), QByteArrayLiteral("PONG"));
         QVERIFY(page.m_autoReplyBuffer.isEmpty());
-        page.m_serial.closePort();
+        page.m_link.closeLink();
     }
 
     void englishButtonLabels()

@@ -1,5 +1,6 @@
 #include "app/core/hex_utils.h"
 #include "app/core/app_i18n.h"
+#include "app/core/text_encoding.h"
 
 #include <QtCore/QChar>
 #include <QtCore/QStringList>
@@ -121,4 +122,130 @@ QString bytesToPrintableText(const QByteArray &data)
         }
     }
     return text;
+}
+
+namespace {
+
+EscapeParseResult failEscape(qsizetype offset, const QString &message)
+{
+    EscapeParseResult result;
+    result.ok = false;
+    result.errorOffset = offset;
+    result.errorMessage = message;
+    return result;
+}
+
+} // namespace
+
+EscapeParseResult parseEscapedTextPayload(const QString &input, const QString &encodingKey)
+{
+    EscapeParseResult result;
+    result.ok = true;
+
+    QString literalRun;
+    const auto flushLiteral = [&]() {
+        if (literalRun.isEmpty()) {
+            return true;
+        }
+        const AppTextEncoding::EncodeResult encoded = AppTextEncoding::encode(literalRun, encodingKey);
+        if (!encoded.ok) {
+            result = failEscape(-1, encoded.errorMessage);
+            return false;
+        }
+        result.bytes.append(encoded.bytes);
+        literalRun.clear();
+        return true;
+    };
+
+    const qsizetype size = input.size();
+    qsizetype i = 0;
+    while (i < size) {
+        const QChar ch = input.at(i);
+        if (ch != QLatin1Char('\\')) {
+            literalRun.append(ch);
+            ++i;
+            continue;
+        }
+        if (i + 1 >= size) {
+            if (!flushLiteral()) {
+                return result;
+            }
+            return failEscape(i, AppI18n::text("转义符后缺少字符"));
+        }
+
+        const QChar kind = input.at(i + 1);
+        char escaped = 0;
+        bool isEscaped = true;
+        switch (kind.unicode()) {
+        case 'r':
+            escaped = '\r';
+            break;
+        case 'n':
+            escaped = '\n';
+            break;
+        case 't':
+            escaped = '\t';
+            break;
+        case 'a':
+            escaped = '\a';
+            break;
+        case 'b':
+            escaped = '\b';
+            break;
+        case 'f':
+            escaped = '\f';
+            break;
+        case 'v':
+            escaped = '\v';
+            break;
+        case '0':
+            escaped = '\0';
+            break;
+        case '\\':
+            escaped = '\\';
+            break;
+        case 'x':
+        case 'X': {
+            qsizetype digitsEnd = i + 2;
+            while (digitsEnd < size && digitsEnd - (i + 2) < 2 && isHexChar(input.at(digitsEnd))) {
+                ++digitsEnd;
+            }
+            if (digitsEnd == i + 2) {
+                if (!flushLiteral()) {
+                    return result;
+                }
+                return failEscape(i, AppI18n::text("\\x 后缺少 1-2 位十六进制数字"));
+            }
+            if (!flushLiteral()) {
+                return result;
+            }
+            int value = 0;
+            for (qsizetype n = i + 2; n < digitsEnd; ++n) {
+                value = (value << 4) | hexValue(input.at(n));
+            }
+            result.bytes.append(static_cast<char>(value));
+            i = digitsEnd;
+            isEscaped = false;
+            break;
+        }
+        default:
+            if (!flushLiteral()) {
+                return result;
+            }
+            return failEscape(i, AppI18n::text("不支持的转义序列"));
+        }
+
+        if (isEscaped) {
+            if (!flushLiteral()) {
+                return result;
+            }
+            result.bytes.append(escaped);
+            i += 2;
+        }
+    }
+
+    if (!flushLiteral()) {
+        return result;
+    }
+    return result;
 }

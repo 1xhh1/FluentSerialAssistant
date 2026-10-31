@@ -23,6 +23,34 @@ SerialPortConfig WorkbenchPage::currentSerialConfig() const
     return config;
 }
 
+LinkConfig WorkbenchPage::currentLinkConfig() const
+{
+    LinkConfig config;
+    const QString typeKey = m_linkTypeCombo ? m_linkTypeCombo->currentData().toString() : QStringLiteral("serial");
+    config.type = linkTypeFromKey(typeKey);
+    if (config.type == LinkType::Serial) {
+        config.serial = currentSerialConfig();
+        return config;
+    }
+    config.host = m_hostEdit ? m_hostEdit->text().trimmed() : QString();
+    config.port = static_cast<quint16>(qBound(0, m_portEdit ? m_portEdit->text().trimmed().toInt() : 0, 65535));
+    return config;
+}
+
+bool WorkbenchPage::hasLastLinkConfig() const
+{
+    return m_lastConfig.type != LinkType::Serial || !m_lastConfig.serial.portName.isEmpty();
+}
+
+QString WorkbenchPage::terminalTimestampFormat() const
+{
+    if (!m_timestampFormatCombo) {
+        return QStringLiteral("HH:mm:ss.zzz");
+    }
+    const QString format = m_timestampFormatCombo->currentData().toString();
+    return format.isEmpty() ? QStringLiteral("HH:mm:ss.zzz") : format;
+}
+
 QByteArray WorkbenchPage::currentPayload(bool *ok)
 {
     return payloadFromText(m_sendEdit->toPlainText(),
@@ -52,15 +80,30 @@ QByteArray WorkbenchPage::payloadFromText(const QString &payloadText, const QStr
         }
         data = result.bytes;
     } else {
-        const AppTextEncoding::EncodeResult result = AppTextEncoding::encode(payloadText, sendEncodingKey());
-        if (!result.ok) {
-            if (focusEditorOnError) {
-                m_sendEdit->setFocus();
+        if (m_escapeParseCheck && m_escapeParseCheck->isChecked()) {
+            const EscapeParseResult result = parseEscapedTextPayload(payloadText, sendEncodingKey());
+            if (!result.ok) {
+                if (focusEditorOnError) {
+                    m_sendEdit->setFocus();
+                }
+                showWarning(AppI18n::text("转义符输入无效"),
+                            result.errorOffset >= 0
+                                ? AppI18n::text("%1，位置 %2").arg(result.errorMessage).arg(result.errorOffset + 1)
+                                : result.errorMessage);
+                return data;
             }
-            showWarning(AppI18n::text("文本编码失败"), result.errorMessage);
-            return data;
+            data = result.bytes;
+        } else {
+            const AppTextEncoding::EncodeResult result = AppTextEncoding::encode(payloadText, sendEncodingKey());
+            if (!result.ok) {
+                if (focusEditorOnError) {
+                    m_sendEdit->setFocus();
+                }
+                showWarning(AppI18n::text("文本编码失败"), result.errorMessage);
+                return data;
+            }
+            data = result.bytes;
         }
-        data = result.bytes;
     }
 
     data.append(lineEndingForKey(lineEndingKey));
@@ -249,13 +292,13 @@ QString WorkbenchPage::formatRecordLine(const SessionRecord &record, int *conten
         payload = (!m_timestampCheck || !m_timestampCheck->isChecked()) ? record.terminalText : record.displayText;
     }
 
-    QString marker = record.direction == RecordDirection::Tx ? QStringLiteral("»") : QStringLiteral("«");
+    QString marker = record.direction == RecordDirection::Tx ? QStringLiteral("»Tx") : QStringLiteral("«Rx");
     if (!record.sourceLabel.trimmed().isEmpty()) {
         marker = QStringLiteral("%1[%2]").arg(marker, record.sourceLabel.trimmed());
     }
     QString prefix = marker;
     if (m_timestampCheck && m_timestampCheck->isChecked()) {
-        prefix = QStringLiteral("%1 %2").arg(record.timestamp.toString(QStringLiteral("HH:mm:ss.zzz")), marker);
+        prefix = QStringLiteral("%1 %2").arg(record.timestamp.toString(terminalTimestampFormat()), marker);
     }
     if (!payload.isEmpty()) {
         prefix += QLatin1Char(' ');
@@ -466,9 +509,8 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
     // records and sent data decode on their own.
     const QString decoded = direction == RecordDirection::Rx && updateStats
                                 ? m_rxStreamDecoder.decode(data, receiveEncodingKey())
-                                : AppTextEncoding::decode(data, direction == RecordDirection::Rx
-                                                                    ? receiveEncodingKey()
-                                                                    : sendEncodingKey());
+                                : AppTextEncoding::decode(data, direction == RecordDirection::Rx ? receiveEncodingKey()
+                                                                                                 : sendEncodingKey());
     record.terminalText = AppTextEncoding::toTerminalText(decoded);
     record.displayText = AppTextEncoding::toSingleLineText(decoded);
     record.sourceLabel = sourceLabel;
@@ -816,8 +858,8 @@ void WorkbenchPage::appendStyledTerminalText(QTextCursor &cursor, const SessionR
     }
 
     const bool showTimestamp = m_timestampCheck && m_timestampCheck->isChecked();
-    const QString timestamp = record.timestamp.toString(QStringLiteral("HH:mm:ss.zzz"));
-    const QString marker = record.direction == RecordDirection::Tx ? QStringLiteral("»") : QStringLiteral("«");
+    const QString timestamp = record.timestamp.toString(terminalTimestampFormat());
+    const QString marker = record.direction == RecordDirection::Tx ? QStringLiteral("»Tx") : QStringLiteral("«Rx");
     int position = 0;
     if (showTimestamp && line.startsWith(timestamp)) {
         QTextCharFormat timestampFormat = format;

@@ -134,7 +134,7 @@ void WorkbenchPage::updateMacroActionState()
         m_macroAbortOnFailureCheck->setEnabled(canEdit);
     }
     if (m_macroRunButton) {
-        m_macroRunButton->setEnabled(canEdit && hasSteps && m_serial.isOpen());
+        m_macroRunButton->setEnabled(canEdit && hasSteps && m_link.isOpen());
     }
     if (m_macroStopButton) {
         m_macroStopButton->setEnabled(m_macroRunning);
@@ -241,7 +241,7 @@ void WorkbenchPage::moveSelectedMacroStep(int direction)
 
 void WorkbenchPage::startMacroSequence()
 {
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         showWarning(AppI18n::text("无法运行宏命令"), AppI18n::text("请先连接串口"));
         return;
     }
@@ -291,7 +291,7 @@ void WorkbenchPage::runMacroCurrentStep()
     if (!m_macroRunning) {
         return;
     }
-    if (!m_serial.isOpen()) {
+    if (!m_link.isOpen()) {
         finishMacroSequence(AppI18n::text("串口已断开"), false);
         return;
     }
@@ -360,7 +360,7 @@ void WorkbenchPage::runMacroCurrentStep()
     }
 
     QString error;
-    if (!m_serial.writeData(output, &error)) {
+    if (!m_link.writeData(output, &error)) {
         m_macroResults.append(result);
         m_macroActiveResult = m_macroResults.size() - 1;
         completeMacroStep(false, error);

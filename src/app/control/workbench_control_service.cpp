@@ -63,6 +63,7 @@ QJsonObject statusToJson(const AppControl::SessionStatus &status)
     object.insert(QStringLiteral("session"), status.id);
     object.insert(QStringLiteral("connected"), status.connected);
     object.insert(QStringLiteral("serial"), serialConfigToJson(status.serialConfig));
+    object.insert(QStringLiteral("transport"), status.transport);
     object.insert(QStringLiteral("receivedBytes"), static_cast<double>(status.receivedBytes));
     object.insert(QStringLiteral("transmittedBytes"), static_cast<double>(status.transmittedBytes));
     object.insert(QStringLiteral("recordCount"), status.recordCount);
@@ -302,6 +303,54 @@ QJsonObject WorkbenchControlService::handleRequest(const QJsonObject &request)
         QString error;
         if (!session->controlConnect(config, &error)) {
             return errorResponse(id, QStringLiteral("SERIAL_OPEN_FAILED"), error);
+        }
+        return successResponse(id, statusToJson(session->controlStatus()));
+    }
+
+    if (action == QStringLiteral("serial.connect_link")) {
+        LinkConfig config;
+        const QString transport =
+            params.value(QStringLiteral("transport")).toString(QStringLiteral("serial")).trimmed();
+        config.type = linkTypeFromKey(transport);
+        if (config.type == LinkType::TcpServer || config.type == LinkType::TcpClient || config.type == LinkType::Udp) {
+            config.host = params.value(QStringLiteral("host")).toString().trimmed();
+            const int port = params.value(QStringLiteral("port")).toInt(0);
+            const int localPort = params.value(QStringLiteral("localPort")).toInt(0);
+            if (port < 0 || port > 65535 || localPort < 0 || localPort > 65535) {
+                return errorResponse(id, QStringLiteral("INVALID_PARAMS"),
+                                     QStringLiteral("Port must be within 0-65535"));
+            }
+            config.port = static_cast<quint16>(port);
+            config.localPort = static_cast<quint16>(localPort);
+            if ((config.type == LinkType::TcpClient || config.type == LinkType::Udp) &&
+                (config.host.isEmpty() || config.port == 0)) {
+                return errorResponse(id, QStringLiteral("INVALID_PARAMS"),
+                                     QStringLiteral("Host and a positive port are required"));
+            }
+            if (config.type == LinkType::TcpServer && config.port == 0) {
+                return errorResponse(id, QStringLiteral("INVALID_PARAMS"),
+                                     QStringLiteral("A positive listening port is required"));
+            }
+        } else {
+            config.type = LinkType::Serial;
+            config.serial.portName = params.value(QStringLiteral("port")).toString().trimmed();
+            config.serial.baudRate = params.value(QStringLiteral("baudRate")).toInt(115200);
+            if (!parseDataBits(params.value(QStringLiteral("dataBits")), &config.serial.dataBits) ||
+                !parseParity(params.value(QStringLiteral("parity")).toString(QStringLiteral("none")),
+                             &config.serial.parity) ||
+                !parseStopBits(params.value(QStringLiteral("stopBits")).toDouble(1.0), &config.serial.stopBits) ||
+                !parseFlowControl(params.value(QStringLiteral("flowControl")).toString(QStringLiteral("none")),
+                                  &config.serial.flowControl)) {
+                return errorResponse(id, QStringLiteral("INVALID_PARAMS"),
+                                     QStringLiteral("Invalid serial connection parameters"));
+            }
+            config.serial.requestToSend = params.value(QStringLiteral("rts")).toBool(false);
+            config.serial.dataTerminalReady = params.value(QStringLiteral("dtr")).toBool(false);
+        }
+
+        QString error;
+        if (!session->controlConnectLink(config, &error)) {
+            return errorResponse(id, QStringLiteral("LINK_OPEN_FAILED"), error);
         }
         return successResponse(id, statusToJson(session->controlStatus()));
     }

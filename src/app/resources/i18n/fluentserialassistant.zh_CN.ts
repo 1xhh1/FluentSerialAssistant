@@ -248,6 +248,14 @@
         <translation>CRC 错误</translation>
     </message>
     <message>
+        <source>LRC 正确</source>
+        <translation>LRC 正确</translation>
+    </message>
+    <message>
+        <source>LRC 错误</source>
+        <translation>LRC 错误</translation>
+    </message>
+    <message>
         <source>站号范围应为 1-247</source>
         <translation>站号范围应为 1-247</translation>
     </message>
@@ -1228,6 +1236,22 @@
     <message>
         <source>生成帧会自动附加 CRC16-Modbus</source>
         <translation>生成帧会自动附加 CRC16-Modbus</translation>
+    </message>
+    <message>
+        <source>生成帧会自动附加 LRC 校验</source>
+        <translation>生成帧会自动附加 LRC 校验</translation>
+    </message>
+    <message>
+        <source>模式</source>
+        <translation>模式</translation>
+    </message>
+    <message>
+        <source>RTU</source>
+        <translation>RTU</translation>
+    </message>
+    <message>
+        <source>ASCII</source>
+        <translation>ASCII</translation>
     </message>
     <message>
         <source>Modbus 帧生成失败</source>

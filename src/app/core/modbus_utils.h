@@ -16,6 +16,12 @@ struct FunctionOption
     bool coil = false;
 };
 
+enum class TransportMode
+{
+    Rtu,
+    Ascii,
+};
+
 struct RequestConfig
 {
     quint8 slaveId = 1;
@@ -23,6 +29,7 @@ struct RequestConfig
     quint16 address = 0;
     quint16 quantity = 1;
     QString valuesText;
+    TransportMode mode = TransportMode::Rtu;
 };
 
 struct BuildResult
@@ -38,6 +45,7 @@ struct ParseResult
     bool recognized = false;
     bool crcValid = false;
     QString summary;
+    TransportMode mode = TransportMode::Rtu;
 };
 
 QList<FunctionOption> functionOptions();
