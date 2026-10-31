@@ -3,7 +3,6 @@
 #include "app/core/app_i18n.h"
 #include "app/view/ascii_table_dialog.h"
 #include "app/view/convert_dialog.h"
-#include "app/view/debugger_dialog.h"
 #include "app/view/data_table_window.h"
 
 #include <QtGui/QTextBlock>
@@ -154,14 +153,4 @@ void WorkbenchPage::showAsciiTableDialog()
     m_asciiTableDialog->show();
     m_asciiTableDialog->raise();
     m_asciiTableDialog->activateWindow();
-}
-
-void WorkbenchPage::showDebuggerDialog()
-{
-    if (!m_debuggerDialog) {
-        m_debuggerDialog = new DebuggerDialog(this);
-    }
-    m_debuggerDialog->show();
-    m_debuggerDialog->raise();
-    m_debuggerDialog->activateWindow();
 }

@@ -6,7 +6,7 @@
 
 ### 新增
 
-- **J-Link 调试器窗口**（终端工具栏扳手图标）：移植自 Synex 的 HSS/RTT 能力——通过 QLibrary 动态加载 `JLink_x64.dll`，支持 SWD 目标连接（设备名/速率可配）、**内存读写 + 回读校验**（HEX/ASCII 双栏显示）、**RTT 通道终端**（时间戳滚动输出，50ms 轮询）。DLL 路径可配置，未安装时优雅降级。
+- **J-Link 调试器窗口**（侧边栏“J-Link 调试器”卡片）：移植自 Synex 的 HSS/RTT 能力——通过 J-Link Commander（JLink.exe）批处理模式驱动（DLL 直调在 V7.80 下会崩溃，实测确认），支持 SWD 连接（设备名/速率可配）、**内存读取 + 写入并自动回读校验**（HEX/ASCII 双栏显示）、halt/run、**RTT 通道终端**（JLinkRTTLogger 50ms 轮询，时间戳滚动）。DLL/可执行路径可配置，未安装时优雅降级。已在真实 J-Link OB-Mini Plus + Cortex-M4 上实测：CPUID 读取、SRAM 写入校验、halt/run 全部通过。
 - **绘图 OpenGL 加速**：新增编译开关 `FQW_ENABLE_OPENGL_PLOT`（本应用默认开启），`RealtimePlotWidget` 改为 `QOpenGLWidget` 基类渲染进 OpenGL 帧缓冲，QPainter 绘制代码零改动。
 - **Synex v4.0.2 逆向移植**：常用包新增“模板”发送模式——类型化占位符 `[u8:值] [i16:值] [u32:值] [f32:值]`（十进制或 0x，大小端跟随校验设置）+ `[crc]` 占位（按当前校验算法在占位处注入校验码，覆盖其前全部字节），例如 `AA 55 01 [i8:7] [crc] 0D 0A`。
 - 接收文字颜色可配置：发送设置新增 **RX 颜色**选择器（默认天蓝 `#64d2ff`），与 TX 颜色并排，接收内容不再固定白色。

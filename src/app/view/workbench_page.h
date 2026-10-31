@@ -36,7 +36,7 @@ class QuickPlotWindow;
 class ProtocolTemplateWindow;
 class ConvertDialog;
 class AsciiTableDialog;
-class DebuggerDialog;
+class JLinkCommander;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -424,7 +424,12 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void refreshDataTableWindow();
     void showConvertDialog();
     void showAsciiTableDialog();
-    void showDebuggerDialog();
+    void readDebuggerMemory();
+    void writeDebuggerMemory();
+    void startDebuggerRtt();
+    void stopDebuggerRtt();
+    void pollRttOutput();
+    void updateDebuggerUi();
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -581,7 +586,22 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     DataTableWindow *m_dataTableWindow = nullptr;
     ConvertDialog *m_convertDialog = nullptr;
     AsciiTableDialog *m_asciiTableDialog = nullptr;
-    DebuggerDialog *m_debuggerDialog = nullptr;
+    JLinkCommander *m_jlink = nullptr;
+    QTimer *m_debuggerRttTimer = nullptr;
+    FluentQt::LineEdit *m_debuggerDeviceEdit = nullptr;
+    FluentQt::LineEdit *m_debuggerSpeedEdit = nullptr;
+    FluentQt::LineEdit *m_debuggerAddressEdit = nullptr;
+    FluentQt::LineEdit *m_debuggerSizeEdit = nullptr;
+    FluentQt::LineEdit *m_debuggerWriteEdit = nullptr;
+    FluentQt::LineEdit *m_debuggerRttChannelEdit = nullptr;
+    FluentQt::PrimaryPushButton *m_debuggerConnectButton = nullptr;
+    FluentQt::PushButton *m_debuggerReadButton = nullptr;
+    FluentQt::PushButton *m_debuggerWriteButton = nullptr;
+    FluentQt::PushButton *m_debuggerRttStartButton = nullptr;
+    FluentQt::PushButton *m_debuggerRttStopButton = nullptr;
+    FluentQt::CaptionLabel *m_debuggerStatusLabel = nullptr;
+    FluentQt::PlainTextEdit *m_debuggerMemoryView = nullptr;
+    FluentQt::PlainTextEdit *m_debuggerRttView = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.

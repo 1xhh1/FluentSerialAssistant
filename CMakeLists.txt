@@ -81,8 +81,8 @@ add_executable(FluentSerialAssistant
     src/app/control/local_control_server.h
     src/app/control/session_control.h
     src/app/control/workbench_control_service.cpp
-    src/app/debug/jlink_debugger.cpp
-    src/app/debug/jlink_debugger.h
+    src/app/debug/jlink_commander.cpp
+    src/app/debug/jlink_commander.h
     src/app/control/workbench_control_service.h
     src/app/core/app_i18n.cpp
     src/app/core/app_i18n.h
@@ -128,8 +128,6 @@ add_executable(FluentSerialAssistant
     src/app/view/ascii_table_dialog.h
     src/app/view/convert_dialog.cpp
     src/app/view/convert_dialog.h
-    src/app/view/debugger_dialog.cpp
-    src/app/view/debugger_dialog.h
     src/app/view/data_table_model.cpp
     src/app/view/data_table_model.h
     src/app/view/data_table_window.cpp
@@ -155,6 +153,7 @@ add_executable(FluentSerialAssistant
     src/app/view/workbench/workbench_page_checksum.cpp
     src/app/view/workbench/workbench_page_auto_reply.cpp
     src/app/view/workbench/workbench_page_connection.cpp
+    src/app/view/workbench/workbench_page_debugger.cpp
     src/app/view/workbench/workbench_page_control.cpp
     src/app/view/workbench/workbench_page_data_table.cpp
     src/app/view/workbench/workbench_page_files.cpp
