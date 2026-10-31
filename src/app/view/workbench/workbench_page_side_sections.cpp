@@ -289,11 +289,23 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     m_timestampFormatCombo->setEnabled(false);
     addFormRow(root, AppI18n::text("时间戳格式"), m_timestampFormatCombo);
 
-    // Saving: capture to file, rolling log, and one-shot exports.
-    addGroupHeading(root, AppI18n::text("保存与导出"));
-    m_saveReceiveCheck = new CheckBox(AppI18n::text("保存接收"), section);
+    // Saving: capture the raw stream to a file, or export the receive area.
+    addGroupHeading(root, AppI18n::text("保存与导出"),
+                    AppI18n::text("把收到的原始字节持续写入文件，或把接收区记录导出为 TXT / CSV / BIN。"));
+
+    auto *saveReceiveRow = new QWidget(section);
+    auto *saveReceiveLayout = new QHBoxLayout(saveReceiveRow);
+    saveReceiveLayout->setContentsMargins(0, 0, 0, 0);
+    saveReceiveLayout->setSpacing(8);
+    m_saveReceiveCheck = new CheckBox(AppI18n::text("保存接收"), saveReceiveRow);
     m_saveReceiveCheck->setMinimumWidth(0);
     m_saveReceiveCheck->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    AppUi::setFluentToolTip(m_saveReceiveCheck,
+                            AppI18n::text("连接后把收到的原始字节持续写入导出目录下的 serial_rx_时间.bin"));
+    saveReceiveLayout->addWidget(m_saveReceiveCheck);
+    saveReceiveLayout->addStretch(1);
+    root->addWidget(saveReceiveRow);
+
     m_receiveCaptureLabel = new CaptionLabel(AppI18n::text("接收保存未启用"), section);
     m_receiveCaptureLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
     m_receiveCaptureLabel->setWordWrap(true);
@@ -304,6 +316,9 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     m_exportTxtButton = new PushButton(icon(FluentIcon::Document), QStringLiteral("TXT"), section);
     m_exportCsvButton = new PushButton(icon(FluentIcon::SaveAs), QStringLiteral("CSV"), section);
     m_exportBinButton = new PushButton(icon(FluentIcon::Save), QStringLiteral("BIN"), section);
+    AppUi::setFluentToolTip(m_exportTxtButton, AppI18n::text("把接收区记录导出为 TXT 文本"));
+    AppUi::setFluentToolTip(m_exportCsvButton, AppI18n::text("把接收区记录导出为 CSV（时间/方向/数据列）"));
+    AppUi::setFluentToolTip(m_exportBinButton, AppI18n::text("把接收区原始字节导出为 BIN"));
     setButtonRowControlPolicy(m_exportTxtButton);
     setButtonRowControlPolicy(m_exportCsvButton);
     setButtonRowControlPolicy(m_exportBinButton);
@@ -316,6 +331,8 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     counterRow->setSpacing(8);
     m_resetCountersButton = new PushButton(icon(FluentIcon::Cancel), AppI18n::text("计数清零"), section);
     m_clearButton = new PushButton(icon(FluentIcon::Broom), AppI18n::text("清空接收区"), section);
+    AppUi::setFluentToolTip(m_resetCountersButton, AppI18n::text("把收发字节与帧计数归零"));
+    AppUi::setFluentToolTip(m_clearButton, AppI18n::text("清空接收区显示与计数，不影响已保存的文件"));
     setButtonRowControlPolicy(m_resetCountersButton);
     setButtonRowControlPolicy(m_clearButton);
     counterRow->addWidget(m_resetCountersButton);

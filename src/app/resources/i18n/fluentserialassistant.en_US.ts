@@ -3709,6 +3709,34 @@ Installation log: %2</translation>
         <source>把接收记录持续写入文件；超过滚动上限自动换新文件。</source>
         <translation>Keep writing received records to a file; roll to a new file past the rollover limit.</translation>
     </message>
+    <message>
+        <source>把收到的原始字节持续写入文件，或把接收区记录导出为 TXT / CSV / BIN。</source>
+        <translation>Keep writing the raw received bytes to a file, or export the receive area as TXT / CSV / BIN.</translation>
+    </message>
+    <message>
+        <source>连接后把收到的原始字节持续写入导出目录下的 serial_rx_时间.bin</source>
+        <translation>While connected, keep writing the raw received bytes to serial_rx_&lt;time&gt;.bin in the export folder</translation>
+    </message>
+    <message>
+        <source>把接收区记录导出为 TXT 文本</source>
+        <translation>Export the receive area as TXT text</translation>
+    </message>
+    <message>
+        <source>把接收区记录导出为 CSV（时间/方向/数据列）</source>
+        <translation>Export the receive area as CSV (time / direction / data columns)</translation>
+    </message>
+    <message>
+        <source>把接收区原始字节导出为 BIN</source>
+        <translation>Export the raw received bytes as BIN</translation>
+    </message>
+    <message>
+        <source>把收发字节与帧计数归零</source>
+        <translation>Reset the byte and frame counters</translation>
+    </message>
+    <message>
+        <source>清空接收区显示与计数，不影响已保存的文件</source>
+        <translation>Clear the receive area and counters; saved files are untouched</translation>
+    </message>
 </context>
 <context>
     <name>FluentQt::RealtimePlotWidget</name>
