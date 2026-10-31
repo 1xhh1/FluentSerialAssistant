@@ -174,13 +174,18 @@ inline void normalizeCollapsedCardHeight(ExpandSettingCard *card)
 
 inline void makeCollapsibleCard(ExpandSettingCard *card, const QString &settingsName, bool defaultExpanded = false)
 {
+    Q_UNUSED(defaultExpanded);
     if (!card) {
         return;
     }
 
     const QString key = QStringLiteral("workbench/leftCards/%1Collapsed").arg(settingsName);
     AppSettings settings;
-    card->setExpanded(!settings.value(key, !defaultExpanded).toBool());
+    // Cards always start collapsed: the sidebar stays short and predictable.
+    // The toggle state is still persisted for settings that read it.
+    settings.setValue(key, true);
+    card->card()->setFixedHeight(40);
+    card->setExpanded(false);
     normalizeCollapsedCardHeight(card);
     QObject::connect(card, &ExpandSettingCard::expandedChanged, card, [card, key](bool expanded) {
         AppSettings settings;
