@@ -364,48 +364,44 @@ void WorkbenchPage::updateTerminalHeaderLayout()
 
     constexpr int padding = 6;
     constexpr int labelGap = 4;
+    constexpr int groupGap = 8;
+    constexpr int rowHeight = 18;
     const int available = m_terminalStatsWidget->width();
     const auto sampleWidth = [](FluentLabelBase *label, const QString &sample, int pixels) {
         QFont font = label->font();
         font.setPixelSize(pixels);
         return QFontMetrics(font).horizontalAdvance(sample) + 2;
     };
-    const int totalCaptionWidth = qMax(sampleWidth(m_terminalStatsLabels.at(2), AppI18n::text("累计"), 11),
-                                       sampleWidth(m_terminalStatsLabels.at(6), AppI18n::text("累计"), 11));
+
+    // Single-row layout: R↓ 138 B/s 6.4 KB | T↑ ... | Connected 00:05
+    const int directionWidth = qMax(sampleWidth(m_terminalStatsLabels.at(0), QStringLiteral("R↓"), 12),
+                                    sampleWidth(m_terminalStatsLabels.at(4), QStringLiteral("T↑"), 12));
+    const int rateWidth = sampleWidth(m_rxRateLabel, QStringLiteral("999.9 MB/s"), 12);
     const int counterWidth = sampleWidth(m_rxCounterLabel, QStringLiteral("999.9 MB"), 11);
     const int statusWidth = qMax(sampleWidth(m_connectionStatusLabel, AppI18n::text("已连接"), 12),
                                  sampleWidth(m_connectionStatusLabel, AppI18n::text("未连接"), 12));
     const int timeWidth = sampleWidth(m_connectionTimeLabel, QStringLiteral("999:59:59"), 11);
-    const int desiredConnectionWidth = 2 * padding + qMax(statusWidth, timeWidth);
-    int fontSize = 14;
-    int groupGap = 8;
-    int directionWidth = 0;
-    int rateWidth = 0;
-    int trafficWidth = 0;
-    // The same fixed templates determine all three groups, regardless of live data.
-    for (int mode = 0; mode < 2; ++mode) {
-        fontSize = mode == 0 ? 14 : 12;
-        groupGap = mode == 0 ? 8 : 6;
-        directionWidth = qMax(sampleWidth(m_terminalStatsLabels.at(0), QStringLiteral("R↓"), fontSize),
-                              sampleWidth(m_terminalStatsLabels.at(4), QStringLiteral("T↑"), fontSize));
-        rateWidth = sampleWidth(m_rxRateLabel, QStringLiteral("999.9 MB/s"), fontSize);
-        trafficWidth =
-            2 * padding + qMax(directionWidth + labelGap + rateWidth, totalCaptionWidth + labelGap + counterWidth);
-        if (2 * trafficWidth + 2 * groupGap + desiredConnectionWidth <= available) {
-            break;
+
+    int trafficWidth = 2 * padding + directionWidth + labelGap + rateWidth + labelGap + counterWidth;
+    int connectionWidth = 2 * padding + statusWidth + labelGap + timeWidth;
+    int shownCounterWidth = counterWidth;
+    int shownTimeWidth = timeWidth;
+    if (2 * trafficWidth + 2 * groupGap + connectionWidth > available) {
+        // Tight: drop the totals first, then the connection duration.
+        shownCounterWidth = 0;
+        trafficWidth = 2 * padding + directionWidth + labelGap + rateWidth;
+        shownTimeWidth = 0;
+        connectionWidth = 2 * padding + statusWidth;
+        if (2 * trafficWidth + 2 * groupGap + connectionWidth > available) {
+            connectionWidth = qMax(0, available - 2 * trafficWidth - 2 * groupGap);
         }
     }
-    int connectionWidth = qMin(desiredConnectionWidth, qMax(0, available - 2 * trafficWidth - 2 * groupGap));
-    if (connectionWidth < 32) {
-        connectionWidth = 0;
-    }
-    const int connectionSpace = connectionWidth > 0 ? connectionWidth + groupGap : 0;
-    trafficWidth = qMin(trafficWidth, qMax(0, (available - groupGap - connectionSpace) / 2));
+
     const int groupWidths[] = {trafficWidth, trafficWidth, connectionWidth};
     int groupX = 0;
     for (int index = 0; index < m_terminalStatsGroups.size(); ++index) {
         auto *group = m_terminalStatsGroups.at(index);
-        group->setGeometry(groupX, 0, groupWidths[index], 38);
+        group->setGeometry(groupX, 0, groupWidths[index], 30);
         group->setVisible(groupWidths[index] > 0);
         groupX += groupWidths[index] + groupGap;
     }
@@ -420,19 +416,24 @@ void WorkbenchPage::updateTerminalHeaderLayout()
     for (int offset : {0, 4}) {
         const int innerWidth = qMax(0, trafficWidth - 2 * padding);
         const int actualDirectionWidth = qMin(directionWidth, innerWidth);
-        const int actualRateWidth = qMin(rateWidth, qMax(0, innerWidth - directionWidth - labelGap));
-        const int actualCaptionWidth = qMin(totalCaptionWidth, innerWidth);
-        const int actualCounterWidth = qMin(counterWidth, qMax(0, innerWidth - totalCaptionWidth - labelGap));
-        place(m_terminalStatsLabels.at(offset), QRect(padding, 2, actualDirectionWidth, 18), fontSize);
+        const int actualRateWidth =
+            qMin(rateWidth, qMax(0, innerWidth - actualDirectionWidth - labelGap));
+        const int actualCounterWidth = qMin(shownCounterWidth, qMax(0, innerWidth - actualDirectionWidth
+                                                                            - labelGap - actualRateWidth - labelGap));
+        place(m_terminalStatsLabels.at(offset), QRect(padding, 6, actualDirectionWidth, rowHeight), 12);
         place(m_terminalStatsLabels.at(offset + 1),
-              QRect(trafficWidth - padding - actualRateWidth, 2, actualRateWidth, 18), fontSize);
-        place(m_terminalStatsLabels.at(offset + 2), QRect(padding, 21, actualCaptionWidth, 14), 11);
+              QRect(padding + actualDirectionWidth + labelGap, 6, actualRateWidth, rowHeight), 12);
+        // The 累计 captions are superseded by the inline totals.
+        place(m_terminalStatsLabels.at(offset + 2), QRect(0, 0, 0, 0), 11);
         place(m_terminalStatsLabels.at(offset + 3),
-              QRect(trafficWidth - padding - actualCounterWidth, 21, actualCounterWidth, 14), 11);
+              QRect(padding + actualDirectionWidth + labelGap + actualRateWidth + labelGap, 6, actualCounterWidth,
+                    rowHeight),
+              11);
     }
     const int connectionInnerWidth = qMax(0, connectionWidth - 2 * padding);
-    place(m_connectionStatusLabel, QRect(padding, 2, connectionInnerWidth, 18), 12);
-    place(m_connectionTimeLabel, QRect(padding, 21, connectionInnerWidth, 14), 11);
+    const int statusHalf = qMin(statusWidth, qMax(0, connectionInnerWidth - labelGap - shownTimeWidth));
+    place(m_connectionStatusLabel, QRect(padding, 6, statusHalf, rowHeight), 12);
+    place(m_connectionTimeLabel, QRect(padding + statusHalf + labelGap, 6, shownTimeWidth, rowHeight), 11);
 }
 
 void WorkbenchPage::positionTerminalSearchBar()
