@@ -177,7 +177,7 @@ QWidget *WorkbenchPage::createConnectionSection()
                 QStringLiteral("%1 | SWD %2 kHz | RTT CH%3").arg(device).arg(speed).arg(channel));
         }
     };
-    const auto updateLinkTypeUi = [this, section, refreshRttSummary]() {
+    const auto updateLinkTypeUi = [this, refreshRttSummary]() {
         const QString type = m_linkTypeCombo->currentData().toString();
         const bool serial = type == QStringLiteral("serial");
         const bool rtt = type == QStringLiteral("rtt");
@@ -196,18 +196,6 @@ QWidget *WorkbenchPage::createConnectionSection()
             settings.setValue(QStringLiteral("link/type"), type);
             settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
             settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
-        }
-        // Swapping the transport-dependent rows changes the card body height;
-        // the card only re-measures on expand, so re-measure it here once the
-        // layout has settled.
-        if (section->isExpanded()) {
-            QTimer::singleShot(0, section, [section]() {
-                if (!section->isExpanded() || !section->viewLayout()) {
-                    return;
-                }
-                section->setFixedHeight(section->card()->height() +
-                                        section->viewLayout()->sizeHint().height());
-            });
         }
     };
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });

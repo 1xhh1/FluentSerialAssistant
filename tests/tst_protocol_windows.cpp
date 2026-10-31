@@ -644,6 +644,61 @@ class ProtocolWindowsTest : public QObject
         window->showNormal();
         QTRY_COMPARE(validation->text(), QStringLiteral("changed while minimized"));
     }
+    // Regression: the connection card swaps its rows with the transport. It used
+    // to keep the previous content height, so the serial fields were squeezed
+    // into the RTT-sized body the moment the user switched protocol.
+    void connectionCardRefitsWhenTransportChanges()
+    {
+        WorkbenchPage page(nullptr, false, false);
+        page.resize(1120, 840);
+        page.show();
+        QVERIFY(page.m_linkTypeCombo && page.m_sidePanel && page.m_sideScroll);
+
+        FluentQt::ExpandSettingCard *card = nullptr;
+        if (auto *sideLayout = qobject_cast<QVBoxLayout *>(page.m_sidePanel->layout())) {
+            for (int index = 0; index < sideLayout->count(); ++index) {
+                if (auto *candidate =
+                        qobject_cast<FluentQt::ExpandSettingCard *>(sideLayout->itemAt(index)->widget())) {
+                    card = candidate;
+                    break;
+                }
+            }
+        }
+        QVERIFY(card);
+        QVERIFY(card->isExpanded());
+
+        const auto contentHeight = [card]() {
+            return card->card()->height() + card->viewLayout()->sizeHint().height();
+        };
+        const auto viewFitsContent = [card]() {
+            return card->view()->height() >= card->viewLayout()->sizeHint().height();
+        };
+
+        const int rttIndex = page.m_linkTypeCombo->findData(QStringLiteral("rtt"));
+        const int serialIndex = page.m_linkTypeCombo->findData(QStringLiteral("serial"));
+        QVERIFY(rttIndex >= 0);
+        QVERIFY(serialIndex >= 0);
+
+        page.m_linkTypeCombo->setCurrentIndex(rttIndex);
+        QCoreApplication::processEvents();
+        QTRY_VERIFY2(viewFitsContent(), "RTT rows are squeezed into a stale body");
+        QTRY_COMPARE(card->height(), contentHeight());
+        const int rttHeight = card->height();
+
+        page.m_linkTypeCombo->setCurrentIndex(serialIndex);
+        QCoreApplication::processEvents();
+        QTRY_VERIFY2(viewFitsContent(), "serial rows are squeezed into a stale body");
+        QTRY_COMPARE(card->height(), contentHeight());
+        const int serialHeight = card->height();
+        QVERIFY2(serialHeight > rttHeight, "the serial rows must make the card taller");
+
+        page.m_linkTypeCombo->setCurrentIndex(rttIndex);
+        QCoreApplication::processEvents();
+        QTRY_VERIFY2(viewFitsContent(), "RTT rows are squeezed after switching back");
+        QTRY_COMPARE(card->height(), contentHeight());
+        QCOMPARE(card->height(), rttHeight);
+    }
+
 };
 
 QTEST_MAIN(ProtocolWindowsTest)

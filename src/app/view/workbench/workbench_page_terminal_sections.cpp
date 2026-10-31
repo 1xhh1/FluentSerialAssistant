@@ -129,11 +129,6 @@ QWidget *WorkbenchPage::createTerminalSection()
     AppUi::setFluentToolTip(plotButton, AppI18n::text("快速绘图"));
     auto *dataTableButton = new TransparentToolButton(icon(FluentIcon::View), section);
     AppUi::setFluentToolTip(dataTableButton, AppI18n::text("数据表格"));
-    auto *toolboxButton = new TransparentToolButton(icon(FluentIcon::DeveloperTools), section);
-    toolboxButton->setObjectName(QStringLiteral("toolboxButton"));
-    toolboxButton->setAccessibleName(AppI18n::text("工具箱"));
-    AppUi::setFluentToolTip(toolboxButton, AppI18n::text("工具箱：协议模板、Modbus、常用包、宏命令、脚本、自动应答、文件发送"));
-    connect(toolboxButton, &TransparentToolButton::clicked, this, [this]() { showToolboxWindow(); });
     auto *convertButton = new TransparentToolButton(icon(FluentIcon::Unit), section);
     AppUi::setFluentToolTip(convertButton, AppI18n::text("转换计算器"));
     auto *asciiTableButton = new TransparentToolButton(icon(FluentIcon::Font), section);
@@ -168,8 +163,8 @@ QWidget *WorkbenchPage::createTerminalSection()
     });
     auto *settingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
     AppUi::setFluentToolTip(settingsButton, AppI18n::text("设置"));
-    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, toolboxButton, convertButton,
-                               asciiTableButton, timestampButton, themeButton, languageButton, settingsButton}) {
+    for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton,
+                               timestampButton, themeButton, languageButton, settingsButton}) {
         button->setProperty("terminalHeaderAction", true);
         button->setFixedSize(CompactControlHeight, CompactControlHeight);
         button->setIconSize(QSize(16, 16));
@@ -178,8 +173,8 @@ QWidget *WorkbenchPage::createTerminalSection()
                            "min-height: 32px; max-height: 32px; padding: 0px; }");
         FluentStyleSheet::setCustomStyleSheet(button, buttonStyle, buttonStyle);
     }
-    for (ToolButton *button : {searchButton, plotButton, dataTableButton, toolboxButton, convertButton, asciiTableButton,
-                               timestampButton, themeButton, languageButton, settingsButton}) {
+    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, timestampButton, themeButton,
+                               languageButton, settingsButton}) {
         actionLayout->addWidget(button);
     }
 
@@ -390,15 +385,27 @@ void WorkbenchPage::updateTerminalHeaderLayout()
     int trafficWidth = 2 * padding + directionWidth + labelGap + rateWidth + labelGap + counterWidth;
     int connectionWidth = 2 * padding + statusWidth + labelGap + timeWidth;
     int shownCounterWidth = counterWidth;
+    int shownRateWidth = rateWidth;
     int shownTimeWidth = timeWidth;
-    if (2 * trafficWidth + 2 * groupGap + connectionWidth > available) {
+    const int gaps = 2 * groupGap;
+    if (2 * trafficWidth + gaps + connectionWidth > available) {
         // Tight: drop the totals first, then the connection duration.
         shownCounterWidth = 0;
         trafficWidth = 2 * padding + directionWidth + labelGap + rateWidth;
         shownTimeWidth = 0;
         connectionWidth = 2 * padding + statusWidth;
-        if (2 * trafficWidth + 2 * groupGap + connectionWidth > available) {
-            connectionWidth = qMax(0, available - 2 * trafficWidth - 2 * groupGap);
+    }
+    if (2 * trafficWidth + gaps + connectionWidth > available) {
+        // Labels are never truncated, they are dropped whole: keep the
+        // direction arrows, lose the transfer rate.
+        shownRateWidth = 0;
+        trafficWidth = 2 * padding + directionWidth;
+    }
+    if (2 * trafficWidth + gaps + connectionWidth > available) {
+        // Only the connection chip is left; hide it too when it cannot fit.
+        trafficWidth = 0;
+        if (gaps + connectionWidth > available) {
+            connectionWidth = 0;
         }
     }
 
@@ -422,7 +429,7 @@ void WorkbenchPage::updateTerminalHeaderLayout()
         const int innerWidth = qMax(0, trafficWidth - 2 * padding);
         const int actualDirectionWidth = qMin(directionWidth, innerWidth);
         const int actualRateWidth =
-            qMin(rateWidth, qMax(0, innerWidth - actualDirectionWidth - labelGap));
+            qMin(shownRateWidth, qMax(0, innerWidth - actualDirectionWidth - labelGap));
         const int actualCounterWidth = qMin(shownCounterWidth, qMax(0, innerWidth - actualDirectionWidth
                                                                             - labelGap - actualRateWidth - labelGap));
         place(m_terminalStatsLabels.at(offset), QRect(padding, 6, actualDirectionWidth, rowHeight), 12);

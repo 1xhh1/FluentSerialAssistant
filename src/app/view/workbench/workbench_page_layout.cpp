@@ -55,6 +55,17 @@ QWidget *WorkbenchPage::createWorkbench()
     m_toolboxWindow->switchTool(
         AppSettings().value(QStringLiteral("workbench/currentTool"), QStringLiteral("receive")).toString());
 
+    // The toolbox entry sits with the connection setup instead of the terminal
+    // header, which is already full of view toggles.
+    m_toolboxButton = new PushButton(icon(FluentIcon::DeveloperTools), AppI18n::text("工具箱"), m_sidePanel);
+    m_toolboxButton->setObjectName(QStringLiteral("toolboxButton"));
+    m_toolboxButton->setAccessibleName(AppI18n::text("工具箱"));
+    AppUi::setFluentToolTip(m_toolboxButton,
+                            AppI18n::text("工具箱：接收/发送设置、协议模板、Modbus、常用包、宏命令、脚本、自动应答、文件发送"));
+    m_toolboxButton->setFixedHeight(CompactControlHeight + 8);
+    connect(m_toolboxButton, &PushButton::clicked, this, [this]() { showToolboxWindow(); });
+    sideLayout->addWidget(m_toolboxButton);
+
     sideLayout->addStretch(1);
     m_sideScroll->setWidget(m_sidePanel);
     m_sideScroll->setWidgetResizable(true);

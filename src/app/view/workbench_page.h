@@ -600,6 +600,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::PlainTextEdit *m_rttMemoryView = nullptr;
     QWidget *m_rttLinkRows = nullptr;
     ToolboxWindow *m_toolboxWindow = nullptr;
+    FluentQt::PushButton *m_toolboxButton = nullptr;
     QWidget *m_rttMemoryPanel = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
