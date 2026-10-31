@@ -583,6 +583,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     ConvertDialog *m_convertDialog = nullptr;
     AsciiTableDialog *m_asciiTableDialog = nullptr;
     JLinkCommander *m_jlinkMemory = nullptr;
+    bool m_settingsRestored = false;
     FluentQt::CaptionLabel *m_rttSummaryLabel = nullptr;
     FluentQt::TransparentToolButton *m_rttSettingsButton = nullptr;
     FluentQt::LineEdit *m_rttAddressEdit = nullptr;

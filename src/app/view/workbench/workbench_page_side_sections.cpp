@@ -162,7 +162,9 @@ QWidget *WorkbenchPage::createConnectionSection()
         const int channel = settings.value(QStringLiteral("debugger/channel"), 0).toInt();
         if (m_rttSummaryLabel) {
             m_rttSummaryLabel->setText(
-                QStringLiteral("%1 | SWD %2 kHz | CH%3").arg(device).arg(speed).arg(channel));
+                QStringLiteral("%1 · %2 kHz · CH%3").arg(device).arg(speed).arg(channel));
+            m_rttSummaryLabel->setToolTip(
+                QStringLiteral("%1 | SWD %2 kHz | RTT CH%3").arg(device).arg(speed).arg(channel));
         }
     };
     const auto updateLinkTypeUi = [this, refreshRttSummary]() {
@@ -177,10 +179,14 @@ QWidget *WorkbenchPage::createConnectionSection()
         if (rtt) {
             refreshRttSummary();
         }
-        AppSettings settings;
-        settings.setValue(QStringLiteral("link/type"), type);
-        settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
-        settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
+        if (m_settingsRestored) {
+            // During construction this would clobber the saved transport
+            // before restoreSettings had a chance to read it.
+            AppSettings settings;
+            settings.setValue(QStringLiteral("link/type"), type);
+            settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
+            settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
+        }
     };
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
     connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });

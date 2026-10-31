@@ -327,6 +327,7 @@ void WorkbenchPage::restoreSettings()
     }
     m_terminalView->document()->setMaximumBlockCount(maxRecordCount());
     applyTerminalFont();
+    m_settingsRestored = true;
 }
 
 void WorkbenchPage::saveSettings() const

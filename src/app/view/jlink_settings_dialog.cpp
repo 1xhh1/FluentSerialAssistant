@@ -82,7 +82,7 @@ bool JLinkDevicePickerDialog::loadDeviceList()
     // Cache the export: enumerating 10k devices through the DLL takes a
     // moment, so only refresh when the cache is missing or stale.
     const QString cachePath =
-        QDir(AppSettings::directoryPath()).filePath(QStringLiteral("debugger/devices_cache.txt"));
+        QDir(AppSettings::directoryPath()).filePath(QStringLiteral("debugger_devices_cache.txt"));
     const QString dllPath =
         AppSettings().value(QStringLiteral("debugger/dllPath"), JLinkCommander::defaultDllPath()).toString();
     QFileInfo cacheInfo(cachePath);
