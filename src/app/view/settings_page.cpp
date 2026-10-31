@@ -15,6 +15,7 @@
 #include <FluentQtWidgets/Widgets/ComboBox.h>
 #include <FluentQtWidgets/Widgets/InfoBar.h>
 
+#include "app/core/app_paths.h"
 #include "app/core/app_settings.h"
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -107,11 +108,6 @@ int fontIndex(const QStringList &families, const QString &family)
     return index >= 0 ? index : 0;
 }
 
-QString defaultExportFolder()
-{
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    return documents.isEmpty() ? QDir::homePath() : documents;
-}
 
 void hideGroupTitle(SettingCardGroup *group)
 {
@@ -281,7 +277,7 @@ SettingsPage::SettingsPage(QWidget *parent, AppUpdate::UpdateManager *updateMana
                             AppI18n::text("选择着色示例或自定义规则，适用于所有终端会话"), terminalGroup);
     terminalColorCard->setObjectName(QStringLiteral("terminalColorSettingsCard"));
 
-    const QString exportFolder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString exportFolder = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     auto *exportFolderCard = new PushSettingCard(AppI18n::text("选择目录"), FluentIcon::Folder,
                                                  AppI18n::text("默认导出目录"), exportFolder, terminalGroup);
 
@@ -343,7 +339,7 @@ SettingsPage::SettingsPage(QWidget *parent, AppUpdate::UpdateManager *updateMana
     });
     connect(exportFolderCard, &PushSettingCard::clicked, this, [exportFolderCard]() {
         AppSettings settings;
-        const QString current = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+        const QString current = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
         FolderPickerDialog dialog(current, exportFolderCard->window());
         if (dialog.exec() != QDialog::Accepted) {
             return;

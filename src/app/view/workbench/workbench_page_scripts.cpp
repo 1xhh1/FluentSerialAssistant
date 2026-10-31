@@ -126,7 +126,7 @@ void WorkbenchPage::loadScriptFile()
 {
     const QString path = QFileDialog::getOpenFileName(
         this, AppI18n::text("载入脚本"),
-        m_scriptFilePath.isEmpty() ? defaultExportFolder() : QFileInfo(m_scriptFilePath).path(), scriptFileFilter());
+        m_scriptFilePath.isEmpty() ? AppPaths::defaultExportFolder() : QFileInfo(m_scriptFilePath).path(), scriptFileFilter());
     if (path.isEmpty()) {
         return;
     }
@@ -154,7 +154,7 @@ void WorkbenchPage::saveScriptFile()
 
     QString path = m_scriptFilePath;
     if (path.isEmpty()) {
-        path = QFileDialog::getSaveFileName(this, AppI18n::text("保存脚本"), defaultExportFolder(), scriptFileFilter());
+        path = QFileDialog::getSaveFileName(this, AppI18n::text("保存脚本"), AppPaths::defaultExportFolder(), scriptFileFilter());
         if (path.isEmpty()) {
             return;
         }

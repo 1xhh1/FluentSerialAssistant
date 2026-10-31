@@ -251,9 +251,14 @@ void WorkbenchPage::restoreSettings()
     m_autoScrollCheck->setChecked(settings.value(QStringLiteral("receive/autoScroll"), true).toBool());
     m_timestampCheck->setChecked(settings.value(QStringLiteral("receive/timestamp"), true).toBool());
     if (m_timestampFormatCombo) {
-        const QString timestampFormat = settings.value(QStringLiteral("receive/timestampFormat"),
-                                                       QStringLiteral("yyyy/MM/dd HH:mm:ss"))
-                                            .toString();
+        // Highest precision by default; a stored "yyyy/MM/dd HH:mm:ss" is the old
+        // default and is treated as "never chosen".
+        QString timestampFormat = settings.value(QStringLiteral("receive/timestampFormat"),
+                                                 QStringLiteral("yyyy/MM/dd HH:mm:ss.zzz"))
+                                      .toString();
+        if (timestampFormat == QStringLiteral("yyyy/MM/dd HH:mm:ss")) {
+            timestampFormat = QStringLiteral("yyyy/MM/dd HH:mm:ss.zzz");
+        }
         const int timestampFormatIndex = m_timestampFormatCombo->findData(timestampFormat);
         if (timestampFormatIndex >= 0) {
             m_timestampFormatCombo->setCurrentIndex(timestampFormatIndex);
@@ -328,6 +333,7 @@ void WorkbenchPage::restoreSettings()
     }
     m_terminalView->document()->setMaximumBlockCount(maxRecordCount());
     applyTerminalFont();
+
     m_settingsRestored = true;
 }
 

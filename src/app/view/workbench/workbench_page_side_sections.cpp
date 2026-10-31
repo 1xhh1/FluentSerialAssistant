@@ -256,27 +256,18 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     auto *section = new ExpandSettingCard(FluentIcon::Save, AppI18n::text("接收与保存"), QString(), this);
     auto *root = cardBody(section);
 
-    // Display switches: the toggles used while watching the stream.
-    addGroupHeading(root, AppI18n::text("显示"));
-    auto *receiveOptions = new QWidget(section);
-    auto *receiveOptionsGrid = new QGridLayout(receiveOptions);
-    receiveOptionsGrid->setContentsMargins(0, 0, 0, 0);
-    receiveOptionsGrid->setHorizontalSpacing(12);
-    receiveOptionsGrid->setVerticalSpacing(6);
-    receiveOptionsGrid->setColumnStretch(0, 1);
-    receiveOptionsGrid->setColumnStretch(1, 1);
-    receiveOptionsGrid->setColumnStretch(2, 1);
-    m_autoScrollCheck = new CheckBox(AppI18n::text("自动滚动"), receiveOptions);
-    m_timestampCheck = new CheckBox(AppI18n::text("时间戳"), receiveOptions);
-    m_pauseCheck = new CheckBox(AppI18n::text("暂停显示"), receiveOptions);
+    // Display switches: the toggles used while watching the stream. Three of
+    // them stacked need no group title.
+    // One switch per row: three of them side by side left the captions unreadable
+    // in the narrow sidebar.
+    m_autoScrollCheck = new CheckBox(AppI18n::text("自动滚动"), section);
+    m_timestampCheck = new CheckBox(AppI18n::text("时间戳"), section);
+    m_pauseCheck = new CheckBox(AppI18n::text("暂停显示"), section);
     for (CheckBox *check : {m_autoScrollCheck, m_timestampCheck, m_pauseCheck}) {
         check->setMinimumWidth(0);
         check->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+        root->addWidget(check);
     }
-    receiveOptionsGrid->addWidget(m_autoScrollCheck, 0, 0);
-    receiveOptionsGrid->addWidget(m_timestampCheck, 0, 1);
-    receiveOptionsGrid->addWidget(m_pauseCheck, 0, 2);
-    root->addWidget(receiveOptions);
 
     m_timestampFormatCombo = new ComboBox(section);
     m_timestampFormatCombo->setObjectName(QStringLiteral("timestampFormatCombo"));
@@ -291,7 +282,7 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
 
     // Saving: the dialog picks the file and its type, so no format buttons here.
     addGroupHeading(root, AppI18n::text("保存"),
-                    AppI18n::text("勾选后在弹窗里选文件与类型，连接后持续写入。"));
+                    AppI18n::text("勾选后弹窗选文件与类型，连接后持续写入。"));
 
     auto *saveReceiveRow = new QWidget(section);
     auto *saveReceiveLayout = new QHBoxLayout(saveReceiveRow);

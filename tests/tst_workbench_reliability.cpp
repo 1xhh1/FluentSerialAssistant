@@ -5,9 +5,14 @@
 #include "app/view/workbench_sessions_page.h"
 
 #include <QtCore/QElapsedTimer>
+#include <QtCore/QLibrary>
 #include <QtCore/QScopeGuard>
 #include <QtCore/QTemporaryDir>
 #include <QtCore/QThread>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 #include <QtTest/QTest>
 
 #ifdef Q_OS_UNIX
@@ -23,6 +28,43 @@ class WorkbenchReliabilityTest : public QObject
     Q_OBJECT
 
   private:
+    // Working set in KiB (Windows); -1 when unavailable.
+    static qint64 processRssKb()
+    {
+#ifdef Q_OS_WIN
+        typedef BOOL(WINAPI * GetProcessMemoryInfoFn)(HANDLE, void *, DWORD);
+        struct MemoryCounters
+        {
+            DWORD cb;
+            DWORD PageFaultCount;
+            SIZE_T PeakWorkingSetSize;
+            SIZE_T WorkingSetSize;
+            SIZE_T QuotaPeakPagedPoolUsage;
+            SIZE_T QuotaPagedPoolUsage;
+            SIZE_T QuotaPeakNonPagedPoolUsage;
+            SIZE_T QuotaNonPagedPoolUsage;
+            SIZE_T PagefileUsage;
+            SIZE_T PeakPagefileUsage;
+        };
+        static GetProcessMemoryInfoFn fn = nullptr;
+        if (!fn) {
+            QLibrary kernel(QStringLiteral("kernel32"));
+            fn = reinterpret_cast<GetProcessMemoryInfoFn>(kernel.resolve("K32GetProcessMemoryInfo"));
+        }
+        if (!fn) {
+            return -1;
+        }
+        MemoryCounters counters{};
+        counters.cb = sizeof(counters);
+        if (!fn(GetCurrentProcess(), &counters, sizeof(counters))) {
+            return -1;
+        }
+        return static_cast<qint64>(counters.WorkingSetSize / 1024);
+#else
+        return -1;
+#endif
+    }
+
     static void connectVirtualPort(WorkbenchPage &page, const QString &port = VirtualSerialPair::portAName())
     {
         VirtualSerialPair::instance()->setEnabled(true);
@@ -479,6 +521,167 @@ class WorkbenchReliabilityTest : public QObject
         QVERIFY(content.startsWith(QByteArray("\xEF\xBB\xBFtimestamp,direction,source,length,hex,text")));
         QVERIFY(content.contains(QByteArrayLiteral("63 61 70 74 75 72 65 64")));  // hex column, space separated
         QVERIFY(content.contains(QByteArrayLiteral("captured")));
+    }
+
+    // Opt-in soak test: push FSA_STRESS_FORMAT=bin|txt worth of FSA_STRESS_FRAMES
+    // frames through the virtual serial pair with the receive capture on, and
+    // check that every frame reaches the file while the app stays bounded.
+    void millionFrameCaptureStress()
+    {
+        const int frames = qEnvironmentVariableIntValue("FSA_STRESS_FRAMES");
+        if (frames <= 0) {
+            QSKIP("opt-in: set FSA_STRESS_FRAMES (e.g. 1000000) to run");
+        }
+        const QString format = qEnvironmentVariable("FSA_STRESS_FORMAT", QStringLiteral("bin"));
+        const bool liveDisplay = qEnvironmentVariableIsSet("FSA_STRESS_LIVE_DISPLAY");
+        const int batchFrames = qMax(1, qEnvironmentVariableIntValue("FSA_STRESS_BATCH"));
+        const int perBatch = batchFrames > 0 ? batchFrames : 500;
+
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        const QString target = QDir(folder.path()).filePath(QStringLiteral("stress.%1").arg(format));
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/saveToFile"), true);
+        settings.setValue(QStringLiteral("receive/saveFile"), target);
+        settings.setValue(QStringLiteral("receive/saveFormat"), format);
+        // One frame per record: CRLF terminated, split on the tail.
+        settings.setValue(QStringLiteral("receive/autoFrameBreak"), true);
+        settings.setValue(QStringLiteral("receive/frameMode"), QStringLiteral("tail"));
+        settings.setValue(QStringLiteral("receive/framePattern"), QStringLiteral("0D0A"));
+        settings.sync();
+
+        WorkbenchPage page(nullptr, true, false);
+        page.resize(1120, 840);
+        page.show();
+        QVERIFY(page.m_saveReceiveCheck->isChecked());
+        QVERIFY(page.m_autoFrameBreakCheck->isChecked());
+        if (!liveDisplay) {
+            page.m_pauseCheck->setChecked(true);
+        }
+        const int recordCap = page.maxRecordCount();
+
+        SerialController device;
+        connectVirtualPort(page, VirtualSerialPair::portBName());
+        SerialPortConfig config;
+        config.portName = VirtualSerialPair::portAName();
+        QVERIFY(device.openPort(config));
+
+        const auto frame = [](int index) {
+            return QStringLiteral("FRAME_%1\r\n").arg(index, 8, 10, QLatin1Char('0')).toUtf8();
+        };
+        const qsizetype frameBytes = frame(0).size();
+        const qint64 rssBefore = processRssKb();
+
+        // Crash-proof progress trace: a failing soak run still leaves a trail.
+        const QString tracePath = qEnvironmentVariable("FSA_STRESS_TRACE");
+        const auto trace = [tracePath](const QString &line) {
+            if (tracePath.isEmpty()) {
+                return;
+            }
+            QFile file(tracePath);
+            if (file.open(QIODevice::Append | QIODevice::Text)) {
+                QTextStream(&file) << line << '\n';
+            }
+        };
+        trace(QStringLiteral("start frames=%1 format=%2 rss=%3").arg(frames).arg(format).arg(rssBefore));
+
+        qint64 pushed = 0;
+        QElapsedTimer timer;
+        timer.start();
+        while (pushed < frames) {
+            const int inBatch = static_cast<int>(qMin<qint64>(perBatch, frames - pushed));
+            QByteArray batch;
+            batch.reserve(inBatch * frameBytes);
+            for (int i = 0; i < inBatch; ++i) {
+                batch += frame(static_cast<int>(pushed + i));
+            }
+            while (!device.writeData(batch)) {
+                // The virtual pair's buffer is full: let the app drain it.
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+            }
+            pushed += inBatch;
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+            if (pushed % (perBatch * 20) == 0) {
+                trace(QStringLiteral("pushed=%1 rx=%2 rss=%3 elapsed=%4")
+                          .arg(pushed)
+                          .arg(page.m_rxCount)
+                          .arg(processRssKb())
+                          .arg(timer.elapsed()));
+            }
+        }
+        trace(QStringLiteral("pushed-all=%1 rx=%2 rss=%3 elapsed=%4")
+                  .arg(pushed)
+                  .arg(page.m_rxCount)
+                  .arg(processRssKb())
+                  .arg(timer.elapsed()));
+
+        const qint64 expectedBytes = pushed * frameBytes;
+        trace(QStringLiteral("wait-rx rx=%1 expected=%2").arg(page.m_rxCount).arg(expectedBytes));
+        QTRY_VERIFY_WITH_TIMEOUT(page.m_rxCount >= expectedBytes, 900000);
+        trace(QStringLiteral("rx-ok rx=%1 elapsed=%2").arg(page.m_rxCount).arg(timer.elapsed()));
+        // Every received byte has been written by now; stopping the capture
+        // flushes and closes the file so the check does not race the buffers.
+        trace(QStringLiteral("stop-capture file=%1 rss=%2").arg(QFileInfo(target).size()).arg(processRssKb()));
+        page.m_saveReceiveCheck->setChecked(false);
+        QCoreApplication::processEvents();
+        QElapsedTimer drain;
+        drain.start();
+        while (drain.elapsed() < 500) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+        }
+        trace(QStringLiteral("file-ok file=%1 elapsed=%2").arg(QFileInfo(target).size()).arg(timer.elapsed()));
+        trace(QStringLiteral("drained rx=%1 file=%2 rss=%3 elapsed=%4")
+                  .arg(page.m_rxCount)
+                  .arg(QFileInfo(target).size())
+                  .arg(processRssKb())
+                  .arg(timer.elapsed()));
+        const qint64 elapsedMs = timer.elapsed();
+        const qint64 rssAfter = processRssKb();
+        const qint64 fileSize = QFileInfo(target).size();
+
+        qint64 lines = 0;
+        if (format != QStringLiteral("bin")) {
+            QFile capture(target);
+            QVERIFY(capture.open(QIODevice::ReadOnly));
+            while (!capture.atEnd()) {
+                lines += capture.read(1 << 20).count('\n');
+            }
+        }
+
+        qInfo().noquote() << QStringLiteral("STRESS frames=%1 format=%2 display=%3 elapsed=%4 ms rate=%5 frames/s "
+                                           "bytes=%6 file=%7 lines=%8 rss=%9->%10 KiB records=%11 cap=%12")
+                                 .arg(frames)
+                                 .arg(format)
+                                 .arg(liveDisplay ? QStringLiteral("live") : QStringLiteral("paused"))
+                                 .arg(elapsedMs)
+                                 .arg(frames * 1000.0 / qMax<qint64>(1, elapsedMs), 0, 'f', 0)
+                                 .arg(expectedBytes)
+                                 .arg(fileSize)
+                                 .arg(lines)
+                                 .arg(rssBefore)
+                                 .arg(rssAfter)
+                                 .arg(page.m_records.size())
+                                 .arg(recordCap);
+
+        QVERIFY(page.m_link.isOpen());
+        trace(QStringLiteral("asserting file=%1 rx=%2 rss=%3").arg(fileSize).arg(page.m_rxCount).arg(rssAfter));
+        QCOMPARE(page.m_rxCount, expectedBytes);
+        if (format == QStringLiteral("bin")) {
+            QCOMPARE(fileSize, expectedBytes);
+        } else {
+            QCOMPARE(lines, static_cast<qint64>(frames));
+        }
+        QVERIFY(page.m_records.size() <= recordCap);
+        if (rssBefore > 0 && rssAfter > 0) {
+            QVERIFY2(rssAfter - rssBefore < 512 * 1024, "memory grew unbounded during the soak");
+        }
+        qInfo().noquote() << QStringLiteral("STRESS file: %1").arg(target);
+        // keep the artifact for inspection (one per shape so runs do not clash)
+        const QString keep = QDir(QDir::tempPath())
+                                 .filePath(QStringLiteral("fsa_stress_%1_%2.%3").arg(frames).arg(format, format));
+        QFile::remove(keep);
+        QFile::copy(target, keep);
+        trace(QStringLiteral("end"));
     }
 
     void fileSendWaitsForThePortToTakeEachChunk()

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QtWidgets/QFileDialog>
+
 #include <FluentQtWidgets/Widgets/ToolTip.h>
 
 #include <QtCore/QEvent>
@@ -68,6 +70,33 @@ inline void setFluentToolTip(QWidget *widget, const QString &text,
     }
     widget->setToolTip(text);
     installFluentToolTip(widget, position, delayMs);
+}
+
+} // namespace AppUi
+
+namespace AppUi {
+
+// Shared setup for the app's save dialogs: our own QFileDialog so the requested
+// start folder is honoured (the native Windows dialog restores its own last
+// folder instead) plus the file type filters.
+inline void configureSaveDialog(QFileDialog &dialog, const QString &folder, const QString &fileName,
+                                const QStringList &filters, const QString &preselectedFilter)
+{
+    dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    if (!folder.isEmpty()) {
+        dialog.setDirectory(folder);
+    }
+    if (!fileName.isEmpty()) {
+        dialog.selectFile(fileName);
+    }
+    if (!filters.isEmpty()) {
+        dialog.setNameFilters(filters);
+        if (!preselectedFilter.isEmpty()) {
+            dialog.selectNameFilter(preselectedFilter);
+        }
+    }
 }
 
 } // namespace AppUi

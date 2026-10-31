@@ -13,6 +13,27 @@ QByteArray csvLogHeader()
 
 } // namespace
 
+namespace {
+
+// The native Windows save dialog restores its own last folder and ignores the
+// one we ask for, which breaks "start next to the program". Qt's own dialog
+// honours it, so both save flows use this.
+QString askForSavePath(QWidget *parent, const QString &title, const QString &folder, const QString &fileName,
+                       const QStringList &filters, const QString &preselectedFilter, QString *chosenFilter)
+{
+    QFileDialog dialog(parent, title);
+    AppUi::configureSaveDialog(dialog, folder, fileName, filters, preselectedFilter);
+    if (dialog.exec() != QDialog::Accepted) {
+        return QString();
+    }
+    if (chosenFilter) {
+        *chosenFilter = dialog.selectedNameFilter();
+    }
+    return dialog.selectedFiles().value(0);
+}
+
+} // namespace
+
 void WorkbenchPage::promptExportRecords()
 {
     if (m_records.isEmpty()) {
@@ -21,16 +42,15 @@ void WorkbenchPage::promptExportRecords()
     }
 
     AppSettings settings;
-    const QString folder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString folder = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString txtFilter = AppI18n::text("TXT 文本 (*.txt)");
     const QString csvFilter = AppI18n::text("CSV 表格 (*.csv)");
     const QString binFilter = AppI18n::text("BIN 原始字节 (*.bin)");
-    QString selectedFilter = txtFilter;
-    QString path = QFileDialog::getSaveFileName(
-        window(), AppI18n::text("导出接收区"),
-        QDir(folder).filePath(QStringLiteral("serial_session_%1.txt").arg(stamp)),
-        txtFilter + QStringLiteral(";;") + csvFilter + QStringLiteral(";;") + binFilter, &selectedFilter);
+    QString selectedFilter;
+    QString path = askForSavePath(window(), AppI18n::text("导出接收区"), folder,
+                                  QStringLiteral("serial_session_%1.txt").arg(stamp),
+                                  {txtFilter, csvFilter, binFilter}, txtFilter, &selectedFilter);
     if (path.isEmpty()) {
         return;
     }
@@ -186,7 +206,7 @@ bool WorkbenchPage::ensureAutoLogFile(ExportFormat format, qint64 nextBytes)
     }
 
     AppSettings settings;
-    const QString folderPath = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString folderPath = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     QDir folder(folderPath);
     if (!folder.exists() && !folder.mkpath(QStringLiteral("."))) {
         const QSignalBlocker blocker(m_autoLogCheck);
@@ -316,7 +336,7 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
 
     // The dialog picks both the destination and the save type, so the sidebar
     // does not need one button per format.
-    const QString folderPath = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString folderPath = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString txtFilter = AppI18n::text("TXT 文本 (*.txt)");
     const QString csvFilter = AppI18n::text("CSV 表格 (*.csv)");
@@ -328,11 +348,11 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
     const QString suggestedFilter = suggestedFormat == ExportFormat::Txt  ? txtFilter
                                     : suggestedFormat == ExportFormat::Csv ? csvFilter
                                                                            : binFilter;
-    QString selectedFilter = suggestedFilter;
-    QString path = QFileDialog::getSaveFileName(
-        window(), AppI18n::text("选择接收保存文件"),
-        QDir(folderPath).filePath(QStringLiteral("serial_rx_%1.%2").arg(stamp, exportSuffix(suggestedFormat))),
-        txtFilter + QStringLiteral(";;") + csvFilter + QStringLiteral(";;") + binFilter, &selectedFilter);
+    QString selectedFilter;
+    QString path = askForSavePath(
+        window(), AppI18n::text("选择接收保存文件"), folderPath,
+        QStringLiteral("serial_rx_%1.%2").arg(stamp, exportSuffix(suggestedFormat)),
+        {txtFilter, csvFilter, binFilter}, suggestedFilter, &selectedFilter);
     if (path.isEmpty()) {
         // Cancelled: put the switch back instead of failing halfway.
         settings.setValue(QStringLiteral("receive/saveToFile"), false);
@@ -421,7 +441,8 @@ void WorkbenchPage::writeReceiveCaptureRecord(const SessionRecord &record)
     if (output.isEmpty() && format != ExportFormat::Bin) {
         return;
     }
-    if (m_receiveCaptureFile.write(output) != output.size()) {
+    const qint64 written = m_receiveCaptureFile.write(output);
+    if (written != output.size()) {
         const QString error = m_receiveCaptureFile.errorString();
         closeReceiveCapture();
         const QSignalBlocker blocker(m_saveReceiveCheck);
@@ -433,14 +454,22 @@ void WorkbenchPage::writeReceiveCaptureRecord(const SessionRecord &record)
         showError(AppI18n::text("接收保存失败"), error.isEmpty() ? AppI18n::text("写入不完整") : error);
         return;
     }
-    m_receiveCaptureFile.flush();
+    // One flush per frame would cost a syscall per frame; batch it and always
+    // flush when the capture closes.
+    m_receiveCapturePendingBytes += written;
+    if (m_receiveCapturePendingBytes >= 64 * 1024) {
+        m_receiveCaptureFile.flush();
+        m_receiveCapturePendingBytes = 0;
+    }
 }
 
 void WorkbenchPage::closeReceiveCapture()
 {
     if (m_receiveCaptureFile.isOpen()) {
+        m_receiveCaptureFile.flush();
         m_receiveCaptureFile.close();
     }
+    m_receiveCapturePendingBytes = 0;
     updateReceiveCaptureLabel();
 }
 
@@ -473,7 +502,7 @@ void WorkbenchPage::browseSendFile()
     AppSettings settings;
     const QString initialPath = m_filePathEdit && !m_filePathEdit->text().isEmpty()
                                     ? QFileInfo(m_filePathEdit->text()).absolutePath()
-                                    : settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+                                    : settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString path = QFileDialog::getOpenFileName(window(), AppI18n::text("选择发送文件"), initialPath);
     if (path.isEmpty()) {
         return;

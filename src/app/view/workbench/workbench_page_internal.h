@@ -18,6 +18,7 @@
 #include <FluentQtWidgets/StyleSheet.h>
 #include <FluentQtWidgets/Theme.h>
 
+#include "app/core/app_paths.h"
 #include "app/core/app_settings.h"
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDir>
@@ -344,11 +345,6 @@ inline QSerialPort::FlowControl flowControlFromData(const QVariant &data)
     return static_cast<QSerialPort::FlowControl>(data.toInt());
 }
 
-inline QString defaultExportFolder()
-{
-    const QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    return documents.isEmpty() ? QDir::homePath() : documents;
-}
 
 inline QString modeLabel(const QString &mode)
 {

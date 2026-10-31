@@ -1,7 +1,10 @@
+#include "app/core/app_paths.h"
+#include "app/view/fluent_tooltip_helper.h"
 #include "app/view/main_window.h"
 
 #include <QtGui/QScreen>
 #include <QtTest/QTest>
+#include <QtWidgets/QFileDialog>
 
 class MainWindowTest : public QObject
 {
@@ -41,6 +44,27 @@ class MainWindowTest : public QObject
         emit screen->availableGeometryChanged(available);
         QTRY_VERIFY(available.contains(window.frameGeometry()));
         QCOMPARE(window.frameGeometry().size(), available.size());
+    }
+    // The save dialogs must start where the app says (the remembered folder, or
+    // the program directory) - the native dialog used to override it.
+    void saveDialogsStartInTheRequestedFolder()
+    {
+        QFileDialog dialog;
+        const QString folder = AppPaths::defaultExportFolder();
+        AppUi::configureSaveDialog(dialog, folder, QStringLiteral("serial_rx.bin"),
+                                   {QStringLiteral("TXT text (*.txt)"), QStringLiteral("CSV table (*.csv)"),
+                                    QStringLiteral("BIN raw bytes (*.bin)")},
+                                   QStringLiteral("CSV table (*.csv)"));
+        QCOMPARE(dialog.directory().absolutePath(), QDir(folder).absolutePath());
+        QCOMPARE(dialog.acceptMode(), QFileDialog::AcceptSave);
+        QCOMPARE(dialog.nameFilters().size(), 3);
+        QCOMPARE(dialog.selectedNameFilter(), QStringLiteral("CSV table (*.csv)"));
+    }
+
+    // Exports and captures start next to the program when nothing is remembered.
+    void exportFolderFallsBackToTheProgramDirectory()
+    {
+        QCOMPARE(AppPaths::defaultExportFolder(), QCoreApplication::applicationDirPath());
     }
 };
 

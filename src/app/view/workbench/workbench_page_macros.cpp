@@ -619,7 +619,7 @@ void WorkbenchPage::exportMacroResults()
     }
 
     AppSettings settings;
-    const QString initialFolder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString initialFolder = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString initialName =
         QDir(initialFolder)
             .filePath(QStringLiteral("macro_results_%1.csv")

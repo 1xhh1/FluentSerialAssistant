@@ -537,7 +537,7 @@ void WorkbenchPage::saveSendPackets() const
 void WorkbenchPage::importSendPackets()
 {
     AppSettings settings;
-    const QString initialFolder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString initialFolder = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString path = QFileDialog::getOpenFileName(window(), AppI18n::text("导入常用包"), initialFolder,
                                                       QStringLiteral("JSON (*.json)"));
     if (path.isEmpty()) {
@@ -645,7 +645,7 @@ void WorkbenchPage::exportSendPackets()
     }
 
     AppSettings settings;
-    const QString initialFolder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString initialFolder = settings.value(QStringLiteral("export/folder"), AppPaths::defaultExportFolder()).toString();
     const QString initialName =
         QDir(initialFolder)
             .filePath(QStringLiteral("send_packets_%1.json")

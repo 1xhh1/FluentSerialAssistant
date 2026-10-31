@@ -3762,8 +3762,8 @@ Installation log: %2</translation>
         <translation>Picking this opens a file dialog; the raw received bytes are appended to that file</translation>
     </message>
     <message>
-        <source>勾选后在弹窗里选文件与类型，连接后持续写入。</source>
-        <translation>Picking this opens a dialog for the file and its type; the stream is appended after connecting.</translation>
+        <source>勾选后弹窗选文件与类型，连接后持续写入。</source>
+        <translation>Picking this opens a dialog for the file and type; the stream is appended after connecting.</translation>
     </message>
     <message>
         <source>把当前接收区记录存成文件，弹窗里选位置与类型。</source>

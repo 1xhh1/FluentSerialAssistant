@@ -86,6 +86,7 @@ add_executable(FluentSerialAssistant
     src/app/control/workbench_control_service.h
     src/app/core/app_i18n.cpp
     src/app/core/app_i18n.h
+    src/app/core/app_paths.h
     src/app/core/app_settings.cpp
     src/app/core/app_settings.h
     src/app/core/font_preferences.cpp
