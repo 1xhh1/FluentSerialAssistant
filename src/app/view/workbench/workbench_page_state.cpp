@@ -251,8 +251,9 @@ void WorkbenchPage::restoreSettings()
     m_autoScrollCheck->setChecked(settings.value(QStringLiteral("receive/autoScroll"), true).toBool());
     m_timestampCheck->setChecked(settings.value(QStringLiteral("receive/timestamp"), true).toBool());
     if (m_timestampFormatCombo) {
-        const QString timestampFormat =
-            settings.value(QStringLiteral("receive/timestampFormat"), QStringLiteral("HH:mm:ss.zzz")).toString();
+        const QString timestampFormat = settings.value(QStringLiteral("receive/timestampFormat"),
+                                                       QStringLiteral("yyyy/MM/dd HH:mm:ss"))
+                                            .toString();
         const int timestampFormatIndex = m_timestampFormatCombo->findData(timestampFormat);
         if (timestampFormatIndex >= 0) {
             m_timestampFormatCombo->setCurrentIndex(timestampFormatIndex);

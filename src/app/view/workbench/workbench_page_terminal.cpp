@@ -63,9 +63,16 @@ QString WorkbenchPage::terminalTimestampFormat() const
 
 QByteArray WorkbenchPage::currentPayload(bool *ok)
 {
+    // The send bar's \r / \r\n checkboxes override the line-ending combo.
+    QString lineEndingKey = selectedLineEndingKey();
+    if (m_sendBarCrCheck && m_sendBarCrCheck->isChecked()) {
+        lineEndingKey = QStringLiteral("cr");
+    } else if (m_sendBarCrlfCheck && m_sendBarCrlfCheck->isChecked()) {
+        lineEndingKey = QStringLiteral("crlf");
+    }
     return payloadFromText(m_sendEdit->toPlainText(),
                            m_hexSendCheck->isChecked() ? QStringLiteral("hex") : QStringLiteral("text"),
-                           selectedLineEndingKey(), true, ok);
+                           lineEndingKey, true, ok);
 }
 
 QByteArray WorkbenchPage::payloadFromText(const QString &payloadText, const QString &mode, const QString &lineEndingKey,

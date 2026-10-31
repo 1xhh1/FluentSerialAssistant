@@ -53,7 +53,7 @@ QWidget *WorkbenchPage::createTerminalSection()
     m_terminalStatsWidget->setObjectName(QStringLiteral("terminalStatistics"));
     m_terminalStatsWidget->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     m_terminalStatsWidget->setMinimumWidth(0);
-    m_terminalStatsWidget->setFixedHeight(38);
+    m_terminalStatsWidget->setFixedHeight(30);
     m_terminalStatsWidget->installEventFilter(this);
     const auto createGroup = [this](const QString &name, const QString &description, const QString &lightBackground,
                                     const QString &darkBackground) {
@@ -88,7 +88,7 @@ QWidget *WorkbenchPage::createTerminalSection()
     auto *receiveTotal = new CaptionLabel(AppI18n::text("累计"), receiveGroup);
     auto *sendTotal = new CaptionLabel(AppI18n::text("累计"), sendGroup);
     QFont valueFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    valueFont.setPixelSize(14);
+    valueFont.setPixelSize(12);
     valueFont.setWeight(QFont::DemiBold);
     for (auto *label : {m_rxCounterLabel, m_txCounterLabel, m_rxRateLabel, m_txRateLabel}) {
         label->setFont(valueFont);
@@ -149,10 +149,22 @@ QWidget *WorkbenchPage::createTerminalSection()
     FluentStyleSheet::setCustomStyleSheet(m_receiveModeButton, modeButtonStyle, modeButtonStyle);
     actionLayout->addWidget(m_receiveModeButton);
     AppUi::installFluentToolTip(m_receiveModeButton);
+    auto *timestampButton = new TransparentToolButton(icon(FluentIcon::DateTime), section);
+    timestampButton->setObjectName(QStringLiteral("timestampToggleButton"));
+    timestampButton->setAccessibleName(AppI18n::text("时间戳"));
+    timestampButton->setCheckable(true);
+    AppUi::setFluentToolTip(timestampButton, AppI18n::text("时间戳显示"));
+    m_timestampButton = timestampButton;
+    actionLayout->addWidget(timestampButton);
+    connect(timestampButton, &TransparentToolButton::clicked, this, [this](bool checked) {
+        if (m_timestampCheck) {
+            m_timestampCheck->setChecked(checked);
+        }
+    });
     auto *settingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
     AppUi::setFluentToolTip(settingsButton, AppI18n::text("设置"));
     for (ToolButton *button : {clearButton, searchButton, plotButton, dataTableButton, convertButton, asciiTableButton,
-                               themeButton, languageButton, settingsButton}) {
+                               timestampButton, themeButton, languageButton, settingsButton}) {
         button->setProperty("terminalHeaderAction", true);
         button->setFixedSize(CompactControlHeight, CompactControlHeight);
         button->setIconSize(QSize(16, 16));
@@ -161,7 +173,7 @@ QWidget *WorkbenchPage::createTerminalSection()
                            "min-height: 32px; max-height: 32px; padding: 0px; }");
         FluentStyleSheet::setCustomStyleSheet(button, buttonStyle, buttonStyle);
     }
-    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, themeButton,
+    for (ToolButton *button : {searchButton, plotButton, dataTableButton, convertButton, asciiTableButton, timestampButton, themeButton,
                                languageButton, settingsButton}) {
         actionLayout->addWidget(button);
     }
@@ -471,6 +483,45 @@ QWidget *WorkbenchPage::createSendSection()
     auto *section = new HeaderCardWidget(this);
     hideCardHeader(section);
     auto *root = cardBody(section, 10);
+
+    auto *sendBarOptions = new QHBoxLayout;
+    sendBarOptions->setContentsMargins(0, 0, 0, 0);
+    sendBarOptions->setSpacing(10);
+    m_sendBarCrCheck = new CheckBox(AppI18n::text("加 \\r"), section);
+    m_sendBarCrCheck->setObjectName(QStringLiteral("sendBarCrCheck"));
+    m_sendBarCrCheck->setToolTip(AppI18n::text("发送的命令末尾自动附加 \\r（回车）"));
+    m_sendBarCrlfCheck = new CheckBox(AppI18n::text("加 \\r\\n"), section);
+    m_sendBarCrlfCheck->setObjectName(QStringLiteral("sendBarCrlfCheck"));
+    m_sendBarCrlfCheck->setToolTip(AppI18n::text("发送的命令末尾自动附加 \\r\\n（回车+换行）"));
+    {
+        AppSettings settings;
+        const QString ending = settings.value(QStringLiteral("send/barEnding"), QStringLiteral("none")).toString();
+        m_sendBarCrCheck->setChecked(ending == QStringLiteral("cr"));
+        m_sendBarCrlfCheck->setChecked(ending == QStringLiteral("crlf"));
+    }
+    // Mutually exclusive: \r and \r\n cannot both be appended.
+    connect(m_sendBarCrCheck, &CheckBox::toggled, this, [this](bool checked) {
+        if (checked && m_sendBarCrlfCheck->isChecked()) {
+            const QSignalBlocker blocker(m_sendBarCrlfCheck);
+            m_sendBarCrlfCheck->setChecked(false);
+        }
+        AppSettings settings;
+        settings.setValue(QStringLiteral("send/barEnding"),
+                          m_sendBarCrCheck->isChecked() ? QStringLiteral("cr") : QStringLiteral("none"));
+    });
+    connect(m_sendBarCrlfCheck, &CheckBox::toggled, this, [this](bool checked) {
+        if (checked && m_sendBarCrCheck->isChecked()) {
+            const QSignalBlocker blocker(m_sendBarCrCheck);
+            m_sendBarCrCheck->setChecked(false);
+        }
+        AppSettings settings;
+        settings.setValue(QStringLiteral("send/barEnding"),
+                          m_sendBarCrlfCheck->isChecked() ? QStringLiteral("crlf") : QStringLiteral("none"));
+    });
+    sendBarOptions->addWidget(m_sendBarCrCheck);
+    sendBarOptions->addWidget(m_sendBarCrlfCheck);
+    sendBarOptions->addStretch(1);
+    root->addLayout(sendBarOptions);
 
     auto *sendRow = new QHBoxLayout;
     sendRow->setSpacing(10);

@@ -120,21 +120,17 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_rttAddressEdit->setObjectName(QStringLiteral("rttAddressEdit"));
     m_rttAddressEdit->setPlaceholderText(QStringLiteral("0x20000000"));
     addFormRow(rttLayout, AppI18n::text("内存地址"), m_rttAddressEdit);
-    auto *rttMemoryRow = new QHBoxLayout;
-    rttMemoryRow->setSpacing(8);
     m_rttSizeEdit = new LineEdit(section);
     m_rttSizeEdit->setObjectName(QStringLiteral("rttSizeEdit"));
     m_rttSizeEdit->setText(QStringLiteral("64"));
     m_rttReadButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("读取"), section);
     m_rttReadButton->setObjectName(QStringLiteral("rttReadButton"));
     setButtonRowControlPolicy(m_rttReadButton);
-    rttMemoryRow->addWidget(m_rttSizeEdit, 1);
-    rttMemoryRow->addWidget(m_rttReadButton);
-    rttLayout->addLayout(rttMemoryRow);
+    addFormRow(rttLayout, AppI18n::text("字节数"), m_rttSizeEdit, m_rttReadButton);
     m_rttWriteEdit = new LineEdit(section);
     m_rttWriteEdit->setObjectName(QStringLiteral("rttWriteEdit"));
     m_rttWriteEdit->setPlaceholderText(AppI18n::text("写入字节，HEX 格式，如：00 10 20 30"));
-    rttLayout->addWidget(m_rttWriteEdit);
+    addFormRow(rttLayout, AppI18n::text("写入内容"), m_rttWriteEdit);
     m_rttWriteButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("写入并校验"), section);
     m_rttWriteButton->setObjectName(QStringLiteral("rttWriteButton"));
     setButtonRowControlPolicy(m_rttWriteButton);
@@ -406,6 +402,9 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
         settings.setValue(QStringLiteral("receive/timestamp"), checked);
         if (m_timestampFormatCombo) {
             m_timestampFormatCombo->setEnabled(checked);
+        }
+        if (m_timestampButton) {
+            m_timestampButton->setChecked(checked);
         }
         renderTerminal();
     });

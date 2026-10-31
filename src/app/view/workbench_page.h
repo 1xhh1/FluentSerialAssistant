@@ -604,7 +604,10 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::PrimaryPushButton *m_connectButton = nullptr;
     FluentQt::PrimaryPushButton *m_sendButton = nullptr;
     FluentQt::TransparentToolButton *m_receiveModeButton = nullptr;
+    FluentQt::TransparentToolButton *m_timestampButton = nullptr;
     FluentQt::PushButton *m_sendModeButton = nullptr;
+    FluentQt::CheckBox *m_sendBarCrCheck = nullptr;
+    FluentQt::CheckBox *m_sendBarCrlfCheck = nullptr;
     FluentQt::PrimaryPushButton *m_packetSendButton = nullptr;
     FluentQt::PrimaryPushButton *m_macroRunButton = nullptr;
     FluentQt::PrimaryPushButton *m_scriptRunButton = nullptr;
