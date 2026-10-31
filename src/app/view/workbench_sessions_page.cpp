@@ -60,7 +60,7 @@ void WorkbenchSessionsPage::installTitleBarTabs(FluentTitleBar *titleBar)
         }
         tabBar->setParent(titleBar);
         tabBar->setObjectName(QStringLiteral("titleBarSessionTabs"));
-        tabBar->setFixedHeight(36);
+        tabBar->setFixedHeight(40);
         tabBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
         if (auto *titleLayout = qobject_cast<QHBoxLayout *>(titleBar->layout())) {
@@ -214,7 +214,7 @@ void WorkbenchSessionsPage::updateTitleBarTabMetrics()
 
     auto *tabBar = m_tabs->tabBar();
     if (tabBar->parentWidget() == m_titleBar) {
-        tabBar->setFixedHeight(36);
+        tabBar->setFixedHeight(40);
     }
 
     if (auto *tabStrip = tabBar->findChild<QWidget *>(QStringLiteral("view"))) {
