@@ -3,6 +3,13 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QTcpServer>
 #include <QtNetwork/QTcpSocket>
+#include <QtCore/QDateTime>
+#include <QtCore/QFile>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QProcess>
+#include <QtCore/QTimer>
+#include <QtNetwork/QTcpServer>
+#include <QtNetwork/QTcpSocket>
 #include <QtNetwork/QUdpSocket>
 
 namespace {
@@ -41,6 +48,9 @@ LinkType linkTypeFromKey(const QString &key)
     if (normalized == QStringLiteral("udp")) {
         return LinkType::Udp;
     }
+    if (normalized == QStringLiteral("rtt")) {
+        return LinkType::Rtt;
+    }
     return LinkType::Serial;
 }
 
@@ -48,6 +58,10 @@ QString LinkConfig::key() const { return linkTypeKey(type); }
 
 LinkController::LinkController(QObject *parent) : QObject(parent)
 {
+    m_rttTimer = new QTimer(this);
+    m_rttTimer->setInterval(50);
+    connect(m_rttTimer, &QTimer::timeout, this, &LinkController::pollRttLog);
+
     const auto forwardOpened = [this](const QString &name) {
         emit opened(displayName().isEmpty() ? name : displayName());
     };
@@ -71,6 +85,8 @@ bool LinkController::isOpen() const
         return m_clientSocket && m_clientSocket->state() == QAbstractSocket::ConnectedState;
     case LinkType::Udp:
         return m_udp && m_udp->state() == QAbstractSocket::BoundState;
+    case LinkType::Rtt:
+        return m_rttLogger && m_rttLogger->state() == QProcess::Running;
     }
     return false;
 }
@@ -88,6 +104,8 @@ QString LinkController::displayName() const
         return QStringLiteral("%1:%2").arg(m_config.host, QString::number(m_config.port));
     case LinkType::Udp:
         return QStringLiteral("%1:%2").arg(m_config.host, QString::number(m_config.port));
+    case LinkType::Rtt:
+        return QStringLiteral("%1 (RTT)").arg(m_config.host);
     }
     return {};
 }
@@ -163,6 +181,43 @@ bool LinkController::openLink(const LinkConfig &config)
         emit opened(displayName());
         return true;
     }
+    case LinkType::Rtt: {
+        if (!config.rttLoggerPath.isEmpty()) {
+            m_rttLogger = new QProcess(this);
+            m_rttLogger->setProgram(config.rttLoggerPath);
+            // The log file must be the last positional argument; -NoGui would
+            // swallow it (verified with V7.80).
+            m_rttLogger->setArguments({QStringLiteral("-Device"), config.host,
+                                       QStringLiteral("-If"), QStringLiteral("SWD"),
+                                       QStringLiteral("-Speed"), QString::number(config.port),
+                                       QStringLiteral("-RTTChannel"), QString::number(config.localPort),
+                                       m_rttLogFile = QStringLiteral("%1/FluentRTT_%2.log")
+                                                          .arg(QStandardPaths::writableLocation(
+                                                                   QStandardPaths::TempLocation))
+                                                          .arg(QDateTime::currentMSecsSinceEpoch())});
+            m_rttLogger->start();
+            if (!m_rttLogger->waitForStarted(5000)) {
+                m_error = QStringLiteral("Cannot start %1: %2").arg(config.rttLoggerPath, m_rttLogger->errorString());
+                delete m_rttLogger;
+                m_rttLogger = nullptr;
+                return false;
+            }
+            if (!m_rttLogger->waitForReadyRead(15000) && m_rttLogger->state() == QProcess::NotRunning) {
+                m_error = QString::fromLocal8Bit(m_rttLogger->readAllStandardError());
+                if (m_error.isEmpty()) {
+                    m_error = QStringLiteral("RTT logger exited before connecting");
+                }
+                stopRttLogger();
+                return false;
+            }
+            m_rttTailOffset = 0;
+            m_rttTimer->start();
+            emit opened(displayName());
+            return true;
+        }
+        m_error = QStringLiteral("JLinkRTTLogger.exe path is empty");
+        return false;
+    }
     case LinkType::Udp: {
         if (!m_udp) {
             m_udp = new QUdpSocket(this);
@@ -194,6 +249,7 @@ void LinkController::closeLink()
     if (m_udp) {
         m_udp->close();
     }
+    stopRttLogger();
     for (QTcpSocket *socket : std::as_const(m_clients)) {
         socket->abort();
         socket->deleteLater();
@@ -260,6 +316,12 @@ bool LinkController::writeData(const QByteArray &data, QString *error)
             m_error = m_udp->errorString();
         }
         break;
+    case LinkType::Rtt:
+        if (error) {
+            *error = QStringLiteral("RTT down-channel writes are not supported yet");
+        }
+        ok = false;
+        break;
     }
     if (error && !ok && m_config.type != LinkType::Serial && !m_error.isEmpty()) {
         *error = m_error;
@@ -283,8 +345,50 @@ qint64 LinkController::bytesToWrite() const
         return m_clientSocket ? m_clientSocket->bytesToWrite() : 0;
     case LinkType::Udp:
         return 0;
+    case LinkType::Rtt:
+        return 0;
     }
     return 0;
+}
+
+void LinkController::pollRttLog()
+{
+    if (!m_rttLogger || m_rttLogFile.isEmpty()) {
+        return;
+    }
+    QFile log(m_rttLogFile);
+    if (!log.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    if (log.size() > m_rttTailOffset) {
+        log.seek(m_rttTailOffset);
+        const QByteArray data = log.readAll();
+        m_rttTailOffset += data.size();
+        if (!data.isEmpty()) {
+            emit dataReceived(data);
+        }
+    }
+    if (m_rttLogger->state() != QProcess::Running) {
+        m_error = QString::fromLocal8Bit(m_rttLogger->readAllStandardError());
+        emit errorOccurred(m_error.isEmpty() ? QStringLiteral("RTT logger exited") : m_error);
+        closeLink();
+    }
+}
+
+void LinkController::stopRttLogger()
+{
+    if (m_rttTimer) {
+        m_rttTimer->stop();
+    }
+    if (m_rttLogger) {
+        if (m_rttLogger->state() != QProcess::NotRunning) {
+            m_rttLogger->kill();
+            m_rttLogger->waitForFinished(2000);
+        }
+        delete m_rttLogger;
+        m_rttLogger = nullptr;
+    }
+    m_rttTailOffset = 0;
 }
 
 bool LinkController::setRequestToSend(bool enabled)

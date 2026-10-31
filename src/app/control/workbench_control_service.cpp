@@ -6,6 +6,7 @@
 #include "app/core/protocol_template.h"
 #include "app/core/text_encoding.h"
 #include "app/serial/serial_controller.h"
+#include "app/debug/jlink_commander.h"
 #include "app/view/workbench_sessions_page.h"
 
 #include <QtCore/QJsonArray>
@@ -312,7 +313,8 @@ QJsonObject WorkbenchControlService::handleRequest(const QJsonObject &request)
         const QString transport =
             params.value(QStringLiteral("transport")).toString(QStringLiteral("serial")).trimmed();
         config.type = linkTypeFromKey(transport);
-        if (config.type == LinkType::TcpServer || config.type == LinkType::TcpClient || config.type == LinkType::Udp) {
+        if (config.type == LinkType::TcpServer || config.type == LinkType::TcpClient || config.type == LinkType::Udp
+            || config.type == LinkType::Rtt) {
             config.host = params.value(QStringLiteral("host")).toString().trimmed();
             const int port = params.value(QStringLiteral("port")).toInt(0);
             const int localPort = params.value(QStringLiteral("localPort")).toInt(0);
@@ -322,8 +324,12 @@ QJsonObject WorkbenchControlService::handleRequest(const QJsonObject &request)
             }
             config.port = static_cast<quint16>(port);
             config.localPort = static_cast<quint16>(localPort);
-            if ((config.type == LinkType::TcpClient || config.type == LinkType::Udp) &&
-                (config.host.isEmpty() || config.port == 0)) {
+            if (config.type == LinkType::Rtt) {
+                config.rttLoggerPath = JLinkCommander::defaultRttLoggerPath();
+            }
+            if ((config.type == LinkType::TcpClient || config.type == LinkType::Udp
+                 || config.type == LinkType::Rtt)
+                && (config.host.isEmpty() || config.port == 0)) {
                 return errorResponse(id, QStringLiteral("INVALID_PARAMS"),
                                      QStringLiteral("Host and a positive port are required"));
             }

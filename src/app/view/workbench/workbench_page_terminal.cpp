@@ -32,6 +32,14 @@ LinkConfig WorkbenchPage::currentLinkConfig() const
         config.serial = currentSerialConfig();
         return config;
     }
+    if (config.type == LinkType::Rtt) {
+        config.host = m_rttDeviceEdit ? m_rttDeviceEdit->text().trimmed() : QString();
+        config.port = static_cast<quint16>(qBound(0, m_rttSpeedEdit ? m_rttSpeedEdit->text().trimmed().toInt() : 0,
+                                                  65535));
+        config.localPort = static_cast<quint16>(m_rttChannelCombo ? m_rttChannelCombo->currentData().toInt() : 0);
+        config.rttLoggerPath = JLinkCommander::defaultRttLoggerPath();
+        return config;
+    }
     config.host = m_hostEdit ? m_hostEdit->text().trimmed() : QString();
     config.port = static_cast<quint16>(qBound(0, m_portEdit ? m_portEdit->text().trimmed().toInt() : 0, 65535));
     return config;
@@ -560,7 +568,6 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
     m_pendingRecordIndexes.append(m_firstRecordIndex + m_records.size() - 1);
     writeAutoLogRecord(record);
     appendQuickPlotRecord(record);
-    emit recordCaptured(record.bytes, direction == RecordDirection::Tx);
     if (direction == RecordDirection::Rx) {
         updateModbusResponseStatus(data);
     }

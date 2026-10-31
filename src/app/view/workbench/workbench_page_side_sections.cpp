@@ -20,6 +20,7 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_linkTypeCombo->addItem(QStringLiteral("TCP ") + AppI18n::text("服务器"), QIcon(), QStringLiteral("tcp-server"));
     m_linkTypeCombo->addItem(QStringLiteral("TCP ") + AppI18n::text("客户端"), QIcon(), QStringLiteral("tcp-client"));
     m_linkTypeCombo->addItem(QStringLiteral("UDP"), QIcon(), QStringLiteral("udp"));
+    m_linkTypeCombo->addItem(QStringLiteral("J-Link RTT"), QIcon(), QStringLiteral("rtt"));
     m_linkTypeCombo->setCurrentIndex(0);
     addFormRow(root, AppI18n::text("传输"), m_linkTypeCombo);
 
@@ -95,21 +96,92 @@ QWidget *WorkbenchPage::createConnectionSection()
     addFormRow(networkLayout, AppI18n::text("端口"), m_portEdit);
     root->addWidget(m_networkLinkRows);
 
+    // J-Link RTT: device/speed/channel plus the SWD memory inspector. The
+    // RTT stream feeds the terminal exactly like a serial port would.
+    m_rttLinkRows = new QWidget(section);
+    auto *rttLayout = new QVBoxLayout(m_rttLinkRows);
+    rttLayout->setContentsMargins(0, 0, 0, 0);
+    rttLayout->setSpacing(6);
+    m_rttDeviceEdit = new LineEdit(section);
+    m_rttDeviceEdit->setObjectName(QStringLiteral("rttDeviceEdit"));
+    {
+        AppSettings settings;
+        m_rttDeviceEdit->setText(
+            settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString());
+    }
+    addFormRow(rttLayout, AppI18n::text("目标设备"), m_rttDeviceEdit);
+    m_rttSpeedEdit = new LineEdit(section);
+    m_rttSpeedEdit->setObjectName(QStringLiteral("rttSpeedEdit"));
+    m_rttSpeedEdit->setText(
+        AppSettings().value(QStringLiteral("debugger/speed"), QStringLiteral("4000")).toString());
+    addFormRow(rttLayout, AppI18n::text("速率 (kHz)"), m_rttSpeedEdit);
+    m_rttChannelCombo = new ComboBox(section);
+    m_rttChannelCombo->setObjectName(QStringLiteral("rttChannelCombo"));
+    for (int channel = 0; channel <= 15; ++channel) {
+        m_rttChannelCombo->addItem(QStringLiteral("CH%1").arg(channel), QIcon(), channel);
+    }
+    makeCompactControl(m_rttChannelCombo);
+    addFormRow(rttLayout, AppI18n::text("RTT 通道"), m_rttChannelCombo);
+
+    m_rttAddressEdit = new LineEdit(section);
+    m_rttAddressEdit->setObjectName(QStringLiteral("rttAddressEdit"));
+    m_rttAddressEdit->setPlaceholderText(QStringLiteral("0x20000000"));
+    addFormRow(rttLayout, AppI18n::text("内存地址"), m_rttAddressEdit);
+    auto *rttMemoryRow = new QHBoxLayout;
+    rttMemoryRow->setSpacing(8);
+    m_rttSizeEdit = new LineEdit(section);
+    m_rttSizeEdit->setObjectName(QStringLiteral("rttSizeEdit"));
+    m_rttSizeEdit->setText(QStringLiteral("64"));
+    m_rttReadButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("读取"), section);
+    m_rttReadButton->setObjectName(QStringLiteral("rttReadButton"));
+    setButtonRowControlPolicy(m_rttReadButton);
+    rttMemoryRow->addWidget(m_rttSizeEdit, 1);
+    rttMemoryRow->addWidget(m_rttReadButton);
+    rttLayout->addLayout(rttMemoryRow);
+    m_rttWriteEdit = new LineEdit(section);
+    m_rttWriteEdit->setObjectName(QStringLiteral("rttWriteEdit"));
+    m_rttWriteEdit->setPlaceholderText(AppI18n::text("写入字节，HEX 格式，如：00 10 20 30"));
+    rttLayout->addWidget(m_rttWriteEdit);
+    m_rttWriteButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("写入并校验"), section);
+    m_rttWriteButton->setObjectName(QStringLiteral("rttWriteButton"));
+    setButtonRowControlPolicy(m_rttWriteButton);
+    rttLayout->addWidget(m_rttWriteButton);
+    m_rttStatusLabel = new CaptionLabel(AppI18n::text("尚未读取"), section);
+    m_rttStatusLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
+    m_rttStatusLabel->setWordWrap(true);
+    rttLayout->addWidget(m_rttStatusLabel);
+    m_rttMemoryView = new PlainTextEdit(section);
+    m_rttMemoryView->setObjectName(QStringLiteral("rttMemoryView"));
+    m_rttMemoryView->setReadOnly(true);
+    m_rttMemoryView->setFont(QFont(QStringLiteral("Consolas"), 9));
+    m_rttMemoryView->setFixedHeight(96);
+    rttLayout->addWidget(m_rttMemoryView);
+    root->addWidget(m_rttLinkRows);
+
     m_connectButton = new PrimaryPushButton(icon(FluentIcon::Connect), AppI18n::text("连接"), section);
     root->addWidget(m_connectButton);
 
     const auto updateLinkTypeUi = [this]() {
-        const bool serial = m_linkTypeCombo->currentData().toString() == QStringLiteral("serial");
+        const QString type = m_linkTypeCombo->currentData().toString();
+        const bool serial = type == QStringLiteral("serial");
+        const bool rtt = type == QStringLiteral("rtt");
         m_serialLinkRows->setVisible(serial);
-        m_networkLinkRows->setVisible(!serial);
+        m_networkLinkRows->setVisible(!serial && !rtt);
+        m_rttLinkRows->setVisible(rtt);
+        m_rttReadButton->setEnabled(!m_link.isOpen());
+        m_rttWriteButton->setEnabled(!m_link.isOpen());
         AppSettings settings;
-        settings.setValue(QStringLiteral("link/type"), m_linkTypeCombo->currentData().toString());
+        settings.setValue(QStringLiteral("link/type"), type);
         settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
         settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
+        settings.setValue(QStringLiteral("debugger/device"), m_rttDeviceEdit->text().trimmed());
+        settings.setValue(QStringLiteral("debugger/speed"), m_rttSpeedEdit->text().trimmed().toInt());
     };
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
     connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
     connect(m_portEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    connect(m_rttDeviceEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    connect(m_rttSpeedEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
     updateLinkTypeUi();
 
     connect(m_refreshButton, &ToolButton::clicked, this, &WorkbenchPage::refreshPorts);

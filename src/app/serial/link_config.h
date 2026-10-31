@@ -9,12 +9,15 @@ enum class LinkType
     Serial,
     TcpServer,
     TcpClient,
-    Udp
+    Udp,
+    Rtt
 };
 
 // Connection parameters for a workbench session link. Serial keeps the full
 // SerialPortConfig; network links need a peer address (client/UDP) or a listen
-// port (server). UDP binds localPort when it is non-zero.
+// port (server). RTT runs through JLinkRTTLogger: host carries the device
+// name, port the speed in kHz, localPort the RTT channel, and rttLoggerPath
+// the JLinkRTTLogger.exe location.
 struct LinkConfig
 {
     LinkType type = LinkType::Serial;
@@ -22,6 +25,7 @@ struct LinkConfig
     QString host;
     quint16 port = 0;
     quint16 localPort = 0;
+    QString rttLoggerPath;
 
     LinkConfig() = default;
     LinkConfig(const SerialPortConfig &serialConfig) : type(LinkType::Serial), serial(serialConfig) {}

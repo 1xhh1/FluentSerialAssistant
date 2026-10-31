@@ -200,6 +200,12 @@ void WorkbenchPage::restoreSettings()
             m_portEdit->setText(QString::number(linkPort));
         }
     }
+    if (m_rttDeviceEdit) {
+        m_rttDeviceEdit->setText(settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString());
+    }
+    if (m_rttSpeedEdit) {
+        m_rttSpeedEdit->setText(settings.value(QStringLiteral("debugger/speed"), QStringLiteral("4000")).toString());
+    }
     m_baudCombo->setCurrentText(baudRate);
     m_dataBitsCombo->setCurrentText(dataBits);
     const int parityIndex = m_parityCombo->findData(parity);

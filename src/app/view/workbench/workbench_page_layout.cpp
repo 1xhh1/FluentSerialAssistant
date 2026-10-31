@@ -1,5 +1,4 @@
 #include "app/view/workbench/workbench_page_internal.h"
-#include "app/view/workbench/workbench_dashboard.h"
 
 using namespace FluentQt;
 using namespace WorkbenchPagePrivate;
@@ -43,16 +42,7 @@ QWidget *WorkbenchPage::createWorkbench()
     auto *terminalLayout = new QVBoxLayout(terminalPanel);
     terminalLayout->setContentsMargins(0, 0, 0, 0);
     terminalLayout->setSpacing(10);
-    m_centerStack = new QStackedWidget(terminalPanel);
-    m_centerStack->addWidget(createTerminalSection());
-    m_dashboard = new WorkbenchDashboard(this, m_centerStack);
-    m_dashboard->setObjectName(QStringLiteral("workbenchDashboard"));
-    connect(m_dashboard, &WorkbenchDashboard::backRequested, this, [this]() {
-        m_centerStack->setCurrentIndex(0);
-    });
-    m_centerStack->addWidget(m_dashboard);
-    terminalLayout->addWidget(m_centerStack, 1);
-    m_centerStack->setCurrentIndex(0);
+    terminalLayout->addWidget(createTerminalSection(), 1);
     terminalLayout->addWidget(createSendSection());
 
     root->addWidget(m_sideScroll);

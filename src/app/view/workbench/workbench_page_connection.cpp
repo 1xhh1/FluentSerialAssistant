@@ -66,7 +66,13 @@ void WorkbenchPage::onConnectClicked()
             return;
         }
     }
+    if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() == QStringLiteral("rtt") &&
+        (config.host.trimmed().isEmpty() || config.port == 0)) {
+        showWarning(AppI18n::text("连接参数无效"), AppI18n::text("请填写目标设备名称和正整数速率"));
+        return;
+    }
     if (m_linkTypeCombo && m_linkTypeCombo->currentData().toString() != QStringLiteral("serial") &&
+        m_linkTypeCombo->currentData().toString() != QStringLiteral("rtt") &&
         (config.port == 0 || (config.type == LinkType::TcpClient && config.host.trimmed().isEmpty()))) {
         showWarning(AppI18n::text("网络参数无效"), AppI18n::text("请填写有效的主机地址和端口"));
         return;

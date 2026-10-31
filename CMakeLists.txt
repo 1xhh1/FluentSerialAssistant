@@ -153,8 +153,7 @@ add_executable(FluentSerialAssistant
     src/app/view/workbench/workbench_page_checksum.cpp
     src/app/view/workbench/workbench_page_auto_reply.cpp
     src/app/view/workbench/workbench_page_connection.cpp
-    src/app/view/workbench/workbench_dashboard.cpp
-    src/app/view/workbench/workbench_dashboard.h
+    src/app/view/workbench/workbench_page_rtt_memory.cpp
     src/app/view/workbench/workbench_page_control.cpp
     src/app/view/workbench/workbench_page_data_table.cpp
     src/app/view/workbench/workbench_page_files.cpp

@@ -10,6 +10,7 @@
 #include "app/core/hex_utils.h"
 #include "app/core/modbus_utils.h"
 #include "app/core/text_encoding.h"
+#include "app/debug/jlink_commander.h"
 
 #include <FluentQtWidgets/Dialogs/Dialog.h>
 #include <FluentQtWidgets/Dialogs/FolderListDialog.h>

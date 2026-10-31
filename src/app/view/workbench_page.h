@@ -37,8 +37,6 @@ class ProtocolTemplateWindow;
 class ConvertDialog;
 class AsciiTableDialog;
 class JLinkCommander;
-class QStackedWidget;
-class WorkbenchDashboard;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -75,8 +73,6 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
 
   signals:
     void settingsRequested();
-    // Emitted for every terminal record (bytes as captured; transmit marks TX).
-    void recordCaptured(const QByteArray &bytes, bool transmit);
 
   private:
     friend class AutoReplyTest;
@@ -427,7 +423,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void refreshDataTableWindow();
     void showConvertDialog();
     void showAsciiTableDialog();
-    void toggleDashboardView();
+    void readRttMemory();
+    void writeRttMemory();
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -584,8 +581,18 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     DataTableWindow *m_dataTableWindow = nullptr;
     ConvertDialog *m_convertDialog = nullptr;
     AsciiTableDialog *m_asciiTableDialog = nullptr;
-    QStackedWidget *m_centerStack = nullptr;
-    WorkbenchDashboard *m_dashboard = nullptr;
+    JLinkCommander *m_jlinkMemory = nullptr;
+    FluentQt::LineEdit *m_rttDeviceEdit = nullptr;
+    FluentQt::LineEdit *m_rttSpeedEdit = nullptr;
+    FluentQt::ComboBox *m_rttChannelCombo = nullptr;
+    FluentQt::LineEdit *m_rttAddressEdit = nullptr;
+    FluentQt::LineEdit *m_rttSizeEdit = nullptr;
+    FluentQt::LineEdit *m_rttWriteEdit = nullptr;
+    FluentQt::PushButton *m_rttReadButton = nullptr;
+    FluentQt::PushButton *m_rttWriteButton = nullptr;
+    FluentQt::CaptionLabel *m_rttStatusLabel = nullptr;
+    FluentQt::PlainTextEdit *m_rttMemoryView = nullptr;
+    QWidget *m_rttLinkRows = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.
