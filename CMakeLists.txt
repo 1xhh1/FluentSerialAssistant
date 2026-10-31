@@ -132,6 +132,8 @@ add_executable(FluentSerialAssistant
     src/app/view/data_table_model.h
     src/app/view/data_table_window.cpp
     src/app/view/data_table_window.h
+    src/app/view/jlink_settings_dialog.cpp
+    src/app/view/jlink_settings_dialog.h
     src/app/view/main_window.cpp
     src/app/view/main_window.h
     src/app/view/plot_parser_dialog.cpp

@@ -200,11 +200,12 @@ void WorkbenchPage::restoreSettings()
             m_portEdit->setText(QString::number(linkPort));
         }
     }
-    if (m_rttDeviceEdit) {
-        m_rttDeviceEdit->setText(settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString());
-    }
-    if (m_rttSpeedEdit) {
-        m_rttSpeedEdit->setText(settings.value(QStringLiteral("debugger/speed"), QStringLiteral("4000")).toString());
+    if (m_rttSummaryLabel) {
+        const QString device =
+            settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+        const int speed = settings.value(QStringLiteral("debugger/speed"), 4000).toInt();
+        const int channel = settings.value(QStringLiteral("debugger/channel"), 0).toInt();
+        m_rttSummaryLabel->setText(QStringLiteral("%1 | SWD %2 kHz | CH%3").arg(device).arg(speed).arg(channel));
     }
     m_baudCombo->setCurrentText(baudRate);
     m_dataBitsCombo->setCurrentText(dataBits);

@@ -33,10 +33,12 @@ LinkConfig WorkbenchPage::currentLinkConfig() const
         return config;
     }
     if (config.type == LinkType::Rtt) {
-        config.host = m_rttDeviceEdit ? m_rttDeviceEdit->text().trimmed() : QString();
-        config.port = static_cast<quint16>(qBound(0, m_rttSpeedEdit ? m_rttSpeedEdit->text().trimmed().toInt() : 0,
-                                                  65535));
-        config.localPort = static_cast<quint16>(m_rttChannelCombo ? m_rttChannelCombo->currentData().toInt() : 0);
+        AppSettings settings;
+        config.host = settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+        config.port = static_cast<quint16>(
+            qBound(0, settings.value(QStringLiteral("debugger/speed"), 4000).toInt(), 65535));
+        config.localPort = static_cast<quint16>(
+            qBound(0, settings.value(QStringLiteral("debugger/channel"), 0).toInt(), 65535));
         config.rttLoggerPath = JLinkCommander::defaultRttLoggerPath();
         return config;
     }

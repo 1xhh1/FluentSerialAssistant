@@ -54,12 +54,12 @@ void WorkbenchPage::readRttMemory()
                          3500, InfoBarPosition::Top, window());
         return;
     }
-    const QString device = m_rttDeviceEdit->text().trimmed();
-    bool speedOk = false;
-    const int speed = m_rttSpeedEdit->text().trimmed().toInt(&speedOk);
-    if (device.isEmpty() || !speedOk || speed <= 0) {
-        InfoBar::warning(AppI18n::text("连接参数无效"), AppI18n::text("请填写目标设备名称和正整数速率"), Qt::Horizontal,
-                         true, 3500, InfoBarPosition::Top, window());
+    AppSettings settings;
+    const QString device = settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+    const int speed = settings.value(QStringLiteral("debugger/speed"), 4000).toInt();
+    if (device.isEmpty() || speed <= 0) {
+        InfoBar::warning(AppI18n::text("连接参数无效"), AppI18n::text("请在连接卡中填写目标设备名称和速率"),
+                         Qt::Horizontal, true, 3500, InfoBarPosition::Top, window());
         return;
     }
 
@@ -120,12 +120,12 @@ void WorkbenchPage::writeRttMemory()
                          Qt::Horizontal, true, 3500, InfoBarPosition::Top, window());
         return;
     }
-    const QString device = m_rttDeviceEdit->text().trimmed();
-    bool speedOk = false;
-    const int speed = m_rttSpeedEdit->text().trimmed().toInt(&speedOk);
-    if (device.isEmpty() || !speedOk || speed <= 0) {
-        InfoBar::warning(AppI18n::text("连接参数无效"), AppI18n::text("请填写目标设备名称和正整数速率"), Qt::Horizontal,
-                         true, 3500, InfoBarPosition::Top, window());
+    AppSettings settings;
+    const QString device = settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+    const int speed = settings.value(QStringLiteral("debugger/speed"), 4000).toInt();
+    if (device.isEmpty() || speed <= 0) {
+        InfoBar::warning(AppI18n::text("连接参数无效"), AppI18n::text("请在连接卡中填写目标设备名称和速率"),
+                         Qt::Horizontal, true, 3500, InfoBarPosition::Top, window());
         return;
     }
 

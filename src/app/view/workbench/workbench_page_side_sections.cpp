@@ -1,5 +1,6 @@
 #include "app/core/app_i18n.h"
 #include "app/debug/jlink_commander.h"
+#include "app/view/jlink_settings_dialog.h"
 #include "app/view/protocol_template_window.h"
 #include "app/view/workbench/workbench_page_internal.h"
 
@@ -96,32 +97,24 @@ QWidget *WorkbenchPage::createConnectionSection()
     addFormRow(networkLayout, AppI18n::text("端口"), m_portEdit);
     root->addWidget(m_networkLinkRows);
 
-    // J-Link RTT: device/speed/channel plus the SWD memory inspector. The
-    // RTT stream feeds the terminal exactly like a serial port would.
+    // J-Link RTT: a summary chip with the gear dialog (Synex's 硬件配置 bar)
+    // plus the SWD memory inspector. The RTT stream feeds the terminal
+    // exactly like a serial port would.
     m_rttLinkRows = new QWidget(section);
     auto *rttLayout = new QVBoxLayout(m_rttLinkRows);
     rttLayout->setContentsMargins(0, 0, 0, 0);
     rttLayout->setSpacing(6);
-    m_rttDeviceEdit = new LineEdit(section);
-    m_rttDeviceEdit->setObjectName(QStringLiteral("rttDeviceEdit"));
-    {
-        AppSettings settings;
-        m_rttDeviceEdit->setText(
-            settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString());
-    }
-    addFormRow(rttLayout, AppI18n::text("目标设备"), m_rttDeviceEdit);
-    m_rttSpeedEdit = new LineEdit(section);
-    m_rttSpeedEdit->setObjectName(QStringLiteral("rttSpeedEdit"));
-    m_rttSpeedEdit->setText(
-        AppSettings().value(QStringLiteral("debugger/speed"), QStringLiteral("4000")).toString());
-    addFormRow(rttLayout, AppI18n::text("速率 (kHz)"), m_rttSpeedEdit);
-    m_rttChannelCombo = new ComboBox(section);
-    m_rttChannelCombo->setObjectName(QStringLiteral("rttChannelCombo"));
-    for (int channel = 0; channel <= 15; ++channel) {
-        m_rttChannelCombo->addItem(QStringLiteral("CH%1").arg(channel), QIcon(), channel);
-    }
-    makeCompactControl(m_rttChannelCombo);
-    addFormRow(rttLayout, AppI18n::text("RTT 通道"), m_rttChannelCombo);
+    auto *rttSummaryRow = new QHBoxLayout;
+    rttSummaryRow->setSpacing(8);
+    m_rttSummaryLabel = new CaptionLabel(QString(), section);
+    m_rttSummaryLabel->setObjectName(QStringLiteral("rttSummaryLabel"));
+    rttSummaryRow->addWidget(m_rttSummaryLabel, 1);
+    m_rttSettingsButton = new TransparentToolButton(icon(FluentIcon::Setting), section);
+    m_rttSettingsButton->setObjectName(QStringLiteral("rttSettingsButton"));
+    m_rttSettingsButton->setAccessibleName(AppI18n::text("J-Link RTT 参数"));
+    AppUi::setFluentToolTip(m_rttSettingsButton, AppI18n::text("J-Link RTT 参数"));
+    rttSummaryRow->addWidget(m_rttSettingsButton);
+    rttLayout->addLayout(rttSummaryRow);
 
     m_rttAddressEdit = new LineEdit(section);
     m_rttAddressEdit->setObjectName(QStringLiteral("rttAddressEdit"));
@@ -161,7 +154,18 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_connectButton = new PrimaryPushButton(icon(FluentIcon::Connect), AppI18n::text("连接"), section);
     root->addWidget(m_connectButton);
 
-    const auto updateLinkTypeUi = [this]() {
+    const auto refreshRttSummary = [this]() {
+        AppSettings settings;
+        const QString device =
+            settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+        const int speed = settings.value(QStringLiteral("debugger/speed"), 4000).toInt();
+        const int channel = settings.value(QStringLiteral("debugger/channel"), 0).toInt();
+        if (m_rttSummaryLabel) {
+            m_rttSummaryLabel->setText(
+                QStringLiteral("%1 | SWD %2 kHz | CH%3").arg(device).arg(speed).arg(channel));
+        }
+    };
+    const auto updateLinkTypeUi = [this, refreshRttSummary]() {
         const QString type = m_linkTypeCombo->currentData().toString();
         const bool serial = type == QStringLiteral("serial");
         const bool rtt = type == QStringLiteral("rtt");
@@ -170,18 +174,40 @@ QWidget *WorkbenchPage::createConnectionSection()
         m_rttLinkRows->setVisible(rtt);
         m_rttReadButton->setEnabled(!m_link.isOpen());
         m_rttWriteButton->setEnabled(!m_link.isOpen());
+        if (rtt) {
+            refreshRttSummary();
+        }
         AppSettings settings;
         settings.setValue(QStringLiteral("link/type"), type);
         settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
         settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
-        settings.setValue(QStringLiteral("debugger/device"), m_rttDeviceEdit->text().trimmed());
-        settings.setValue(QStringLiteral("debugger/speed"), m_rttSpeedEdit->text().trimmed().toInt());
     };
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
     connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
     connect(m_portEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
-    connect(m_rttDeviceEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
-    connect(m_rttSpeedEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
+    connect(m_rttSettingsButton, &TransparentToolButton::clicked, this, [this, refreshRttSummary]() {
+        AppSettings settings;
+        JLinkSettingsDialog::Settings current;
+        current.device = settings.value(QStringLiteral("debugger/device"), QStringLiteral("S32K144")).toString();
+        current.speedKhz = settings.value(QStringLiteral("debugger/speed"), 4000).toInt();
+        current.upChannel = settings.value(QStringLiteral("debugger/channel"), 0).toInt();
+        current.dllPath = settings.value(QStringLiteral("debugger/dllPath"), JLinkCommander::defaultDllPath()).toString();
+
+        JLinkSettingsDialog dialog(current, window());
+        if (dialog.exec() != QDialog::Accepted) {
+            return;
+        }
+        const JLinkSettingsDialog::Settings changed = dialog.settings();
+        settings.setValue(QStringLiteral("debugger/device"), changed.device);
+        settings.setValue(QStringLiteral("debugger/speed"), changed.speedKhz);
+        settings.setValue(QStringLiteral("debugger/channel"), changed.upChannel);
+        settings.setValue(QStringLiteral("debugger/dllPath"), changed.dllPath);
+        settings.setValue(QStringLiteral("debugger/probeConnection"), changed.probeConnection);
+        settings.setValue(QStringLiteral("debugger/probeParameter"), changed.probeParameter);
+        settings.setValue(QStringLiteral("debugger/interface"), changed.interfaceType);
+        settings.setValue(QStringLiteral("debugger/scriptFile"), changed.scriptFile);
+        refreshRttSummary();
+    });
     updateLinkTypeUi();
 
     connect(m_refreshButton, &ToolButton::clicked, this, &WorkbenchPage::refreshPorts);

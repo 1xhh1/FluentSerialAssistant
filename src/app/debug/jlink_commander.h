@@ -22,6 +22,12 @@ class JLinkCommander : public QObject
 
     static QString defaultExePath();
     static QString defaultRttLoggerPath();
+    static QString defaultDllPath();
+
+    // Enumerates the J-Link device database through JLINK_DEVICE_GetInfo and
+    // writes "vendor|device|flashBytes|ramBytes" lines. Returns the number of
+    // devices, or -1 with error set.
+    static int exportDeviceList(const QString &dllPath, const QString &outputFile, QString *error);
 
     // Synchronous: runs one JLink.exe per call (UI keeps pumping events
     // through QEventLoop). device like "STM32G431RB" or "Cortex-M4".

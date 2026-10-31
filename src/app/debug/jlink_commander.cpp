@@ -3,6 +3,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
+#include <QtCore/QLibrary>
 #include <QtCore/QProcess>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QStandardPaths>
@@ -68,6 +69,70 @@ QString JLinkCommander::defaultExePath()
 QString JLinkCommander::defaultRttLoggerPath()
 {
     return QStringLiteral("D:/SoftWare/CodeSoftWare/JLink/InstallRoute/JLinkRTTLogger.exe");
+}
+
+QString JLinkCommander::defaultDllPath()
+{
+    return QStringLiteral("D:/SoftWare/CodeSoftWare/JLink/InstallRoute/JLink_x64.dll");
+}
+
+int JLinkCommander::exportDeviceList(const QString &dllPath, const QString &outputFile, QString *error)
+{
+    QLibrary lib(dllPath);
+    if (!lib.load()) {
+        if (error) {
+            *error = QStringLiteral("Cannot load %1: %2").arg(dllPath, lib.errorString());
+        }
+        return -1;
+    }
+    auto getIndex = reinterpret_cast<int (*)(const char *)>(lib.resolve("JLINK_DEVICE_GetIndex"));
+    auto getInfo = reinterpret_cast<int (*)(int, void *)>(lib.resolve("JLINK_DEVICE_GetInfo"));
+    if (!getIndex || !getInfo) {
+        if (error) {
+            *error = QStringLiteral("J-Link DLL has no device enumeration exports");
+        }
+        lib.unload();
+        return -1;
+    }
+
+    QFile out(outputFile);
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        if (error) {
+            *error = QStringLiteral("Cannot write device list: %1").arg(out.errorString());
+        }
+        lib.unload();
+        return -1;
+    }
+
+    static unsigned char info[4096];
+    int count = 0;
+    for (int index = 0; index < 40000; ++index) {
+        memset(info, 0, sizeof(info));
+        *reinterpret_cast<int *>(info) = static_cast<int>(sizeof(info)); // SizeOfStructure
+        if (getInfo(index, info) != 0) {
+            break;
+        }
+        // Layout verified against V7.80: +8 char* device, +32 flash bytes,
+        // +36 RAM bytes, +40 char* vendor.
+        const char *device = *reinterpret_cast<const char **>(info + 8);
+        const char *vendor = *reinterpret_cast<const char **>(info + 40);
+        const quint32 flash = *reinterpret_cast<const quint32 *>(info + 32);
+        const quint32 ram = *reinterpret_cast<const quint32 *>(info + 36);
+        if (!device || !*device) {
+            break;
+        }
+        out.write(QString(QStringLiteral("%1|%2|%3|%4\n"))
+                      .arg(QString::fromLatin1(vendor ? vendor : ""), QString::fromLatin1(device))
+                      .arg(flash)
+                      .arg(ram)
+                      .toUtf8());
+        ++count;
+    }
+    lib.unload();
+    if (error && count == 0) {
+        *error = QStringLiteral("No devices exported");
+    }
+    return count > 0 ? count : -1;
 }
 
 bool JLinkCommander::runBatch(const QString &exePath, const QString &device, int speedKhz,

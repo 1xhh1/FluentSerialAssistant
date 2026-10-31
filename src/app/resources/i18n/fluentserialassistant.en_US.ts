@@ -3174,6 +3174,86 @@ Installation log: %2</translation>
         <translation>Dashboard</translation>
     </message>
     <message>
+        <source>选择 J-Link 目标设备</source>
+        <translation>Select J-Link Target Device</translation>
+    </message>
+    <message>
+        <source>搜索厂商、设备或内核，例如 ST、STM32G431、Cortex-M4</source>
+        <translation>Search vendor, device or core, e.g. ST, STM32G431, Cortex-M4</translation>
+    </message>
+    <message>
+        <source>厂商</source>
+        <translation>Vendor</translation>
+    </message>
+    <message>
+        <source>设备</source>
+        <translation>Device</translation>
+    </message>
+    <message>
+        <source>Flash</source>
+        <translation>Flash</translation>
+    </message>
+    <message>
+        <source>RAM</source>
+        <translation>RAM</translation>
+    </message>
+    <message>
+        <source>选择</source>
+        <translation>Select</translation>
+    </message>
+    <message>
+        <source>J-Link RTT 参数</source>
+        <translation>J-Link RTT Parameters</translation>
+    </message>
+    <message>
+        <source>探针连接</source>
+        <translation>Probe connection</translation>
+    </message>
+    <message>
+        <source>探针参数</source>
+        <translation>Probe parameter</translation>
+    </message>
+    <message>
+        <source>调试接口</source>
+        <translation>Debug interface</translation>
+    </message>
+    <message>
+        <source>RTT 通道 (Up/Down)</source>
+        <translation>RTT channels (Up/Down)</translation>
+    </message>
+    <message>
+        <source>目标设备</source>
+        <translation>Target device</translation>
+    </message>
+    <message>
+        <source>DLL 文件</source>
+        <translation>DLL file</translation>
+    </message>
+    <message>
+        <source>脚本文件</source>
+        <translation>Script file</translation>
+    </message>
+    <message>
+        <source>可选 J-Link ScriptFile</source>
+        <translation>Optional J-Link ScriptFile</translation>
+    </message>
+    <message>
+        <source>设备列表导出失败</source>
+        <translation>Failed to export device list</translation>
+    </message>
+    <message>
+        <source>正在读取…</source>
+        <translation>Reading…</translation>
+    </message>
+    <message>
+        <source>正在写入…</source>
+        <translation>Writing…</translation>
+    </message>
+    <message>
+        <source>请在连接卡中填写目标设备名称和速率</source>
+        <translation>Fill in the device name and speed in the connection card</translation>
+    </message>
+    <message>
         <source>RTT 记录器已退出</source>
         <translation>RTT logger exited</translation>
     </message>
