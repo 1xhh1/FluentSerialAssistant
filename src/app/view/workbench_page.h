@@ -36,6 +36,7 @@ class QuickPlotWindow;
 class ProtocolTemplateWindow;
 class ConvertDialog;
 class AsciiTableDialog;
+class DebuggerDialog;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -422,6 +423,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void refreshDataTableWindow();
     void showConvertDialog();
     void showAsciiTableDialog();
+    void showDebuggerDialog();
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -578,6 +580,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     DataTableWindow *m_dataTableWindow = nullptr;
     ConvertDialog *m_convertDialog = nullptr;
     AsciiTableDialog *m_asciiTableDialog = nullptr;
+    DebuggerDialog *m_debuggerDialog = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.
