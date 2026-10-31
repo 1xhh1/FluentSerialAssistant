@@ -28,6 +28,7 @@ QWidget *WorkbenchPage::createWorkbench()
     sideLayout->addWidget(createProtocolTemplateSection());
     sideLayout->addWidget(createSendSettingsSection());
     sideLayout->addWidget(createModbusSection());
+    sideLayout->addWidget(createDebuggerSection());
     sideLayout->addWidget(createPacketSection());
     sideLayout->addWidget(createMacroSection());
     sideLayout->addWidget(createScriptSection());

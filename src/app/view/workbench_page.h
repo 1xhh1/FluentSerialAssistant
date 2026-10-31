@@ -87,6 +87,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     QWidget *createProtocolTemplateSection();
     QWidget *createSendSettingsSection();
     QWidget *createModbusSection();
+    QWidget *createDebuggerSection();
     QWidget *createPacketSection();
     QWidget *createMacroSection();
     QWidget *createScriptSection();

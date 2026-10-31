@@ -2986,10 +2986,6 @@ Installation log: %2</translation>
         <translation>virtual port</translation>
     </message>
     <message>
-        <source>模板</source>
-        <translation>Template</translation>
-    </message>
-    <message>
         <source>模板输入无效</source>
         <translation>Invalid template input</translation>
     </message>
@@ -3012,6 +3008,134 @@ Installation log: %2</translation>
     <message>
         <source>RX 颜色</source>
         <translation>RX color</translation>
+    </message>
+    <message>
+        <source>J-Link 调试器</source>
+        <translation>J-Link Debugger</translation>
+    </message>
+    <message>
+        <source>打开调试器</source>
+        <translation>Open Debugger</translation>
+    </message>
+    <message>
+        <source>SWD 连接后可进行内存读写与 RTT 接收，需安装 SEGGER J-Link 驱动。</source>
+        <translation>Connect over SWD for memory read/write and RTT. SEGGER J-Link drivers are required.</translation>
+    </message>
+    <message>
+        <source>调试连接</source>
+        <translation>Debug Connection</translation>
+    </message>
+    <message>
+        <source>目标设备</source>
+        <translation>Target device</translation>
+    </message>
+    <message>
+        <source>速率 (kHz)</source>
+        <translation>Speed (kHz)</translation>
+    </message>
+    <message>
+        <source>内存读写</source>
+        <translation>Memory R/W</translation>
+    </message>
+    <message>
+        <source>写入内容</source>
+        <translation>Data to write</translation>
+    </message>
+    <message>
+        <source>写入并校验</source>
+        <translation>Write &amp; Verify</translation>
+    </message>
+    <message>
+        <source>尚未读取</source>
+        <translation>Nothing read yet</translation>
+    </message>
+    <message>
+        <source>读取结果（HEX 与 ASCII）</source>
+        <translation>Read result (HEX and ASCII)</translation>
+    </message>
+    <message>
+        <source>RTT 终端</source>
+        <translation>RTT Terminal</translation>
+    </message>
+    <message>
+        <source>通道</source>
+        <translation>Channel</translation>
+    </message>
+    <message>
+        <source>启动 RTT</source>
+        <translation>Start RTT</translation>
+    </message>
+    <message>
+        <source>已连接目标（SWD）</source>
+        <translation>Target connected (SWD)</translation>
+    </message>
+    <message>
+        <source>未加载 J-Link DLL</source>
+        <translation>J-Link DLL not loaded</translation>
+    </message>
+    <message>
+        <source>J-Link DLL 加载失败</source>
+        <translation>Failed to load J-Link DLL</translation>
+    </message>
+    <message>
+        <source>目标连接失败</source>
+        <translation>Failed to connect to target</translation>
+    </message>
+    <message>
+        <source>连接参数无效</source>
+        <translation>Invalid connection parameters</translation>
+    </message>
+    <message>
+        <source>请填写目标设备名称和正整数速率</source>
+        <translation>Enter a device name and a positive speed</translation>
+    </message>
+    <message>
+        <source>地址无效</source>
+        <translation>Invalid address</translation>
+    </message>
+    <message>
+        <source>请输入 0x20000000 样式的地址</source>
+        <translation>Enter an address like 0x20000000</translation>
+    </message>
+    <message>
+        <source>字节数无效</source>
+        <translation>Invalid byte count</translation>
+    </message>
+    <message>
+        <source>字节数须在 1-4096 之间</source>
+        <translation>Byte count must be 1-4096</translation>
+    </message>
+    <message>
+        <source>读取失败</source>
+        <translation>Read failed</translation>
+    </message>
+    <message>
+        <source>写入内容无效</source>
+        <translation>Invalid write data</translation>
+    </message>
+    <message>
+        <source>请输入 HEX 字节，如：00 10 20 30</source>
+        <translation>Enter HEX bytes, e.g. 00 10 20 30</translation>
+    </message>
+    <message>
+        <source>写入失败</source>
+        <translation>Write failed</translation>
+    </message>
+    <message>
+        <source>RTT 启动失败</source>
+        <translation>Failed to start RTT</translation>
+    </message>
+    <message>
+        <source>RTT 读取失败</source>
+        <translation>Failed to read RTT</translation>
+    </message>
+    <message>
+        <source>已读取 %1 字节 @ 0x%2</source>
+        <translation>Read %1 bytes @ 0x%2</translation>
+    </message>
+    <message>
+        <source>已写入并校验 %1 字节 @ 0x%2</source>
+        <translation>Wrote and verified %1 bytes @ 0x%2</translation>
     </message>
     <message>
         <source>时间戳格式</source>

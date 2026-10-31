@@ -755,6 +755,30 @@ QWidget *WorkbenchPage::createSendSettingsSection()
     return section;
 }
 
+QWidget *WorkbenchPage::createDebuggerSection()
+{
+    auto *section = new ExpandSettingCard(FluentIcon::DeveloperTools, AppI18n::text("J-Link 调试器"), QString(), this);
+    auto *root = cardBody(section);
+
+    auto *hint = new CaptionLabel(AppI18n::text("SWD 连接后可进行内存读写与 RTT 接收，需安装 SEGGER J-Link 驱动。"), section);
+    hint->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
+    hint->setWordWrap(true);
+    root->addWidget(hint);
+
+    auto *row = new QHBoxLayout;
+    row->setSpacing(8);
+    auto *openButton = new PushButton(icon(FluentIcon::DeveloperTools), AppI18n::text("打开调试器"), section);
+    openButton->setObjectName(QStringLiteral("openDebuggerButton"));
+    setButtonRowControlPolicy(openButton);
+    row->addWidget(openButton);
+    row->addStretch(1);
+    root->addLayout(row);
+
+    connect(openButton, &PushButton::clicked, this, &WorkbenchPage::showDebuggerDialog);
+    makeCollapsibleCard(section, QStringLiteral("debugger"));
+    return section;
+}
+
 QWidget *WorkbenchPage::createPacketSection()
 {
     auto *section = new ExpandSettingCard(FluentIcon::Library, AppI18n::text("常用包"), QString(), this);
