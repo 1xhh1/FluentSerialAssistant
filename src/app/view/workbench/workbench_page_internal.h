@@ -66,6 +66,7 @@ constexpr int SidePanelWidth = 324;
 constexpr int TerminalPanelMinWidth = 560;
 constexpr int ReconnectIntervalMs = 2000;
 constexpr int CompactControlHeight = 32;
+
 constexpr int FormLabelWidth = 84;
 constexpr int DefaultFileChunkSize = 256;
 constexpr int MaxChecksumSkipBytes = 65535;
@@ -174,19 +175,23 @@ inline void normalizeCollapsedCardHeight(ExpandSettingCard *card)
 
 inline void makeCollapsibleCard(ExpandSettingCard *card, const QString &settingsName, bool defaultExpanded = false)
 {
-    Q_UNUSED(defaultExpanded);
     if (!card) {
         return;
     }
 
     const QString key = QStringLiteral("workbench/leftCards/%1Collapsed").arg(settingsName);
     AppSettings settings;
-    // Cards always start collapsed: the sidebar stays short and predictable.
-    // The toggle state is still persisted for settings that read it.
-    settings.setValue(key, true);
     card->card()->setFixedHeight(40);
-    card->setExpanded(false);
-    normalizeCollapsedCardHeight(card);
+    if (defaultExpanded) {
+        // Core cards (connection) always open on startup; the user may still
+        // collapse them for the session.
+        settings.setValue(key, false);
+        card->setExpanded(true);
+    } else {
+        settings.setValue(key, true);
+        card->setExpanded(false);
+        normalizeCollapsedCardHeight(card);
+    }
     QObject::connect(card, &ExpandSettingCard::expandedChanged, card, [card, key](bool expanded) {
         AppSettings settings;
         settings.setValue(key, !expanded);

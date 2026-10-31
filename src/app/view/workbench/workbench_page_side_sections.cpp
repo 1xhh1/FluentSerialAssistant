@@ -115,37 +115,50 @@ QWidget *WorkbenchPage::createConnectionSection()
     m_rttSettingsButton->setAccessibleName(AppI18n::text("J-Link RTT 参数"));
     AppUi::setFluentToolTip(m_rttSettingsButton, AppI18n::text("J-Link RTT 参数"));
     rttSummaryRow->addWidget(m_rttSettingsButton);
+    m_rttMemoryButton = new TransparentToolButton(icon(FluentIcon::Edit), section);
+    m_rttMemoryButton->setObjectName(QStringLiteral("rttMemoryButton"));
+    m_rttMemoryButton->setAccessibleName(AppI18n::text("RTT 内存读写"));
+    AppUi::setFluentToolTip(m_rttMemoryButton, AppI18n::text("RTT 内存读写"));
+    rttSummaryRow->addWidget(m_rttMemoryButton);
     rttLayout->addLayout(rttSummaryRow);
 
-    m_rttAddressEdit = new LineEdit(section);
+    // The memory inspector lives in the toolbox window; the card only keeps
+    // the entry point so the sidebar stays compact.
+    m_rttMemoryPanel = new QWidget(this);
+    auto *rttMemoryLayout = new QVBoxLayout(m_rttMemoryPanel);
+    rttMemoryLayout->setContentsMargins(0, 0, 0, 0);
+    rttMemoryLayout->setSpacing(8);
+
+    m_rttAddressEdit = new LineEdit(m_rttMemoryPanel);
     m_rttAddressEdit->setObjectName(QStringLiteral("rttAddressEdit"));
     m_rttAddressEdit->setPlaceholderText(QStringLiteral("0x20000000"));
-    addFormRow(rttLayout, AppI18n::text("内存地址"), m_rttAddressEdit);
-    m_rttSizeEdit = new LineEdit(section);
+    addFormRow(rttMemoryLayout, AppI18n::text("内存地址"), m_rttAddressEdit);
+    m_rttSizeEdit = new LineEdit(m_rttMemoryPanel);
     m_rttSizeEdit->setObjectName(QStringLiteral("rttSizeEdit"));
     m_rttSizeEdit->setText(QStringLiteral("64"));
-    m_rttReadButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("读取"), section);
+    m_rttReadButton = new PushButton(icon(FluentIcon::Download), AppI18n::text("读取"), m_rttMemoryPanel);
     m_rttReadButton->setObjectName(QStringLiteral("rttReadButton"));
     setButtonRowControlPolicy(m_rttReadButton);
-    addFormRow(rttLayout, AppI18n::text("字节数"), m_rttSizeEdit, m_rttReadButton);
-    m_rttWriteEdit = new LineEdit(section);
+    addFormRow(rttMemoryLayout, AppI18n::text("字节数"), m_rttSizeEdit, m_rttReadButton);
+    m_rttWriteEdit = new LineEdit(m_rttMemoryPanel);
     m_rttWriteEdit->setObjectName(QStringLiteral("rttWriteEdit"));
     m_rttWriteEdit->setPlaceholderText(AppI18n::text("写入字节，HEX 格式，如：00 10 20 30"));
-    addFormRow(rttLayout, AppI18n::text("写入内容"), m_rttWriteEdit);
-    m_rttWriteButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("写入并校验"), section);
+    addFormRow(rttMemoryLayout, AppI18n::text("写入内容"), m_rttWriteEdit);
+    m_rttWriteButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("写入并校验"), m_rttMemoryPanel);
     m_rttWriteButton->setObjectName(QStringLiteral("rttWriteButton"));
     setButtonRowControlPolicy(m_rttWriteButton);
-    rttLayout->addWidget(m_rttWriteButton);
-    m_rttStatusLabel = new CaptionLabel(AppI18n::text("尚未读取"), section);
+    rttMemoryLayout->addWidget(m_rttWriteButton);
+    m_rttStatusLabel = new CaptionLabel(AppI18n::text("尚未读取"), m_rttMemoryPanel);
     m_rttStatusLabel->setTextColor(QColor(96, 96, 96), QColor(180, 180, 180));
     m_rttStatusLabel->setWordWrap(true);
-    rttLayout->addWidget(m_rttStatusLabel);
-    m_rttMemoryView = new PlainTextEdit(section);
+    rttMemoryLayout->addWidget(m_rttStatusLabel);
+    m_rttMemoryView = new PlainTextEdit(m_rttMemoryPanel);
     m_rttMemoryView->setObjectName(QStringLiteral("rttMemoryView"));
     m_rttMemoryView->setReadOnly(true);
     m_rttMemoryView->setFont(QFont(QStringLiteral("Consolas"), 9));
     m_rttMemoryView->setFixedHeight(96);
-    rttLayout->addWidget(m_rttMemoryView);
+    rttMemoryLayout->addWidget(m_rttMemoryView);
+    rttMemoryLayout->addStretch(1);
     root->addWidget(m_rttLinkRows);
 
     m_connectButton = new PrimaryPushButton(icon(FluentIcon::Connect), AppI18n::text("连接"), section);
@@ -164,7 +177,7 @@ QWidget *WorkbenchPage::createConnectionSection()
                 QStringLiteral("%1 | SWD %2 kHz | RTT CH%3").arg(device).arg(speed).arg(channel));
         }
     };
-    const auto updateLinkTypeUi = [this, refreshRttSummary]() {
+    const auto updateLinkTypeUi = [this, section, refreshRttSummary]() {
         const QString type = m_linkTypeCombo->currentData().toString();
         const bool serial = type == QStringLiteral("serial");
         const bool rtt = type == QStringLiteral("rtt");
@@ -184,13 +197,24 @@ QWidget *WorkbenchPage::createConnectionSection()
             settings.setValue(QStringLiteral("link/host"), m_hostEdit->text().trimmed());
             settings.setValue(QStringLiteral("link/port"), m_portEdit->text().trimmed().toInt());
         }
+        // Swapping the transport-dependent rows changes the card body height;
+        // the card only re-measures on expand, so re-measure it here once the
+        // layout has settled.
+        if (section->isExpanded()) {
+            QTimer::singleShot(0, section, [section]() {
+                if (!section->isExpanded() || !section->viewLayout()) {
+                    return;
+                }
+                section->setFixedHeight(section->card()->height() +
+                                        section->viewLayout()->sizeHint().height());
+            });
+        }
     };
     connect(m_linkTypeCombo, &ComboBox::currentIndexChanged, this, [updateLinkTypeUi](int) { updateLinkTypeUi(); });
     connect(m_hostEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
     connect(m_portEdit, &LineEdit::textChanged, this, [updateLinkTypeUi](const QString &) { updateLinkTypeUi(); });
-    // Toggling row visibility changes the body height; ExpandSettingCard only
-    // re-measures on expand, so nudge it once the layout has settled.
-    QTimer::singleShot(0, section, [section]() { section->setExpanded(section->isExpanded()); });
+    connect(m_rttMemoryButton, &TransparentToolButton::clicked, this,
+            [this]() { showToolboxWindow(QStringLiteral("rttMemory")); });
     connect(m_rttSettingsButton, &TransparentToolButton::clicked, this, [this, refreshRttSummary]() {
         AppSettings settings;
         JLinkSettingsDialog::Settings current;
@@ -442,7 +466,7 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
     connect(m_exportCsvButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Csv); });
     connect(m_exportBinButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Bin); });
 
-    makeCollapsibleCard(section, QStringLiteral("receive"));
+    makeCollapsibleCard(section, QStringLiteral("receive"), true);
     return section;
 }
 

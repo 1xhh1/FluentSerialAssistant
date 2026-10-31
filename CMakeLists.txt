@@ -145,6 +145,8 @@ add_executable(FluentSerialAssistant
     src/app/view/settings_page.cpp
     src/app/view/settings_page.h
     src/app/view/terminal_color_dialog.cpp
+    src/app/view/toolbox_window.cpp
+    src/app/view/toolbox_window.h
     src/app/view/terminal_color_dialog.h
     src/app/view/update_dialog.cpp
     src/app/view/update_dialog.h

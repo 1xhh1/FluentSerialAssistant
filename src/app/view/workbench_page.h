@@ -9,6 +9,7 @@
 #include "app/serial/link_controller.h"
 #include "app/serial/serial_controller.h"
 #include "app/view/app_page.h"
+#include "app/view/toolbox_window.h"
 
 #include <QtCore/QDateTime>
 #include <QtCore/QElapsedTimer>
@@ -37,6 +38,7 @@ class ProtocolTemplateWindow;
 class ConvertDialog;
 class AsciiTableDialog;
 class JLinkCommander;
+class ToolboxWindow;
 
 class WorkbenchPage : public AppPage, public AppControl::SessionControl
 {
@@ -425,6 +427,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     void showAsciiTableDialog();
     void readRttMemory();
     void writeRttMemory();
+    void showToolboxWindow(const QString &key = QString());
+    QWidget *embedToolCard(QWidget *card);
     void flushDataTableWindow();
     QVector<DataTableRecord> dataTableRecords() const;
     DataTableRecord dataTableRecord(int recordIndex, const SessionRecord &record) const;
@@ -586,6 +590,7 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     bool m_settingsRestored = false;
     FluentQt::CaptionLabel *m_rttSummaryLabel = nullptr;
     FluentQt::TransparentToolButton *m_rttSettingsButton = nullptr;
+    FluentQt::TransparentToolButton *m_rttMemoryButton = nullptr;
     FluentQt::LineEdit *m_rttAddressEdit = nullptr;
     FluentQt::LineEdit *m_rttSizeEdit = nullptr;
     FluentQt::LineEdit *m_rttWriteEdit = nullptr;
@@ -594,6 +599,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::CaptionLabel *m_rttStatusLabel = nullptr;
     FluentQt::PlainTextEdit *m_rttMemoryView = nullptr;
     QWidget *m_rttLinkRows = nullptr;
+    ToolboxWindow *m_toolboxWindow = nullptr;
+    QWidget *m_rttMemoryPanel = nullptr;
     QuickPlotWindow *m_quickPlotWindow = nullptr;
     // The window opened through the control interface. Control requests reuse
     // only this one so they never reconfigure a window the user set up.

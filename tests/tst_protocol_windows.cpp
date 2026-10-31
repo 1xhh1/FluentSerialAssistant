@@ -3,6 +3,7 @@
 #include "app/core/hex_utils.h"
 #include "app/view/plot_parser_dialog.h"
 #include "app/view/protocol_template_window.h"
+#include "app/view/toolbox_window.h"
 #include "app/view/workbench_page.h"
 
 #include <FluentQtWidgets/FluentQtWidgets.h>
@@ -48,101 +49,64 @@ class ProtocolWindowsTest : public QObject
         settings.clear();
     }
 
-    void sidebarExpansionKeepsHeadersAnchored_data()
+    void toolCardsLiveInTheToolbox_data()
     {
-        QTest::addColumn<QString>("targetTitle");
-        QTest::addColumn<bool>("scrolled");
-        QTest::newRow("protocol-at-top") << AppI18n::text("协议模板") << false;
-        QTest::newRow("protocol-scrolled") << AppI18n::text("协议模板") << true;
-        QTest::newRow("send-at-top") << AppI18n::text("发送设置") << false;
-        QTest::newRow("send-scrolled") << AppI18n::text("发送设置") << true;
+        QTest::addColumn<QString>("toolKey");
+        QTest::newRow("receive") << QStringLiteral("receive");
+        QTest::newRow("protocol") << QStringLiteral("protocol");
+        QTest::newRow("send") << QStringLiteral("send");
+        QTest::newRow("modbus") << QStringLiteral("modbus");
+        QTest::newRow("packets") << QStringLiteral("packets");
+        QTest::newRow("macros") << QStringLiteral("macros");
+        QTest::newRow("scripts") << QStringLiteral("scripts");
+        QTest::newRow("autoReply") << QStringLiteral("autoReply");
+        QTest::newRow("fileSend") << QStringLiteral("fileSend");
+        QTest::newRow("rttMemory") << QStringLiteral("rttMemory");
     }
 
-    void sidebarExpansionKeepsHeadersAnchored()
+    void toolCardsLiveInTheToolbox()
     {
-        QFETCH(QString, targetTitle);
-        QFETCH(bool, scrolled);
+        QFETCH(QString, toolKey);
 
         WorkbenchPage page(nullptr, false, false);
         page.resize(1120, 840);
         page.show();
-        QVERIFY(page.m_sidePanel && page.m_sideScroll);
-        auto *sideLayout = qobject_cast<QVBoxLayout *>(page.m_sidePanel->layout());
-        QVERIFY(sideLayout);
+        QVERIFY(page.m_sidePanel && page.m_sideScroll && page.m_toolboxWindow);
 
-        QList<FluentQt::ExpandSettingCard *> cards;
-        FluentQt::ExpandSettingCard *protocolCard = nullptr;
-        FluentQt::ExpandSettingCard *target = nullptr;
-        for (int index = 0; index < sideLayout->count(); ++index) {
-            auto *card = qobject_cast<FluentQt::ExpandSettingCard *>(sideLayout->itemAt(index)->widget());
-            if (!card) {
-                continue;
-            }
-            cards.append(card);
-            if (card->titleLabel()->text() == AppI18n::text("协议模板")) {
-                protocolCard = card;
-            }
-            if (card->titleLabel()->text() == targetTitle) {
-                target = card;
+        // The sidebar now carries the connection setup only, always expanded.
+        QList<FluentQt::ExpandSettingCard *> sidebarCards;
+        if (auto *sideLayout = qobject_cast<QVBoxLayout *>(page.m_sidePanel->layout())) {
+            for (int index = 0; index < sideLayout->count(); ++index) {
+                if (auto *card = qobject_cast<FluentQt::ExpandSettingCard *>(sideLayout->itemAt(index)->widget())) {
+                    sidebarCards.append(card);
+                }
             }
         }
-        QVERIFY(protocolCard && target);
-        QVERIFY(!cards.isEmpty());
-        QVERIFY(cards.first()->isExpanded());
-        auto *connectionAnimation = cards.first()->findChild<QVariantAnimation *>(
-            QStringLiteral("expandSettingCardAnimation"));
-        auto *protocolAnimation = protocolCard->findChild<QVariantAnimation *>(
-            QStringLiteral("expandSettingCardAnimation"));
-        QVERIFY(connectionAnimation && protocolAnimation);
-        QTRY_COMPARE(connectionAnimation->state(), QAbstractAnimation::Stopped);
-        if (target != protocolCard) {
-            protocolCard->setExpanded(true);
-            QTRY_COMPARE(protocolAnimation->state(), QAbstractAnimation::Stopped);
-        }
+        QCOMPARE(sidebarCards.size(), 1);
+        QVERIFY(sidebarCards.first()->isExpanded());
+
+        // Every tool is hosted by the toolbox window with real content.
+        ToolboxWindow *toolbox = page.m_toolboxWindow;
+        QWidget *target = toolbox->toolPage(toolKey);
+        QVERIFY2(target, qPrintable(QStringLiteral("toolbox is missing %1").arg(toolKey)));
+        QCOMPARE(toolbox->toolPage(QStringLiteral("rttMemory")) != nullptr, true);
+        QVERIFY(target->sizeHint().height() > 80);
+
+        toolbox->switchTool(toolKey);
         QCoreApplication::processEvents();
+        QCOMPARE(toolbox->currentToolKey(), toolKey);
+        QVERIFY(!target->isHidden());
 
-        auto *scrollBar = page.m_sideScroll->verticalScrollBar();
-        QTRY_VERIFY(scrollBar->maximum() > 0);
-        const int scrollOffset = scrolled ? qMax(1, scrollBar->maximum() / 2) : 0;
-        scrollBar->setValue(scrollOffset);
-        QCoreApplication::processEvents();
-        QCOMPARE(scrollBar->value(), scrollOffset);
-
-        const int targetIndex = cards.indexOf(target);
-        QVERIFY(targetIndex > 0 && targetIndex < cards.size() - 1);
-        QList<QPoint> previousCardPositions;
-        for (int index = 0; index < targetIndex; ++index) {
-            previousCardPositions.append(cards.at(index)->pos());
-        }
-        const QPoint headerPosition = target->card()->mapTo(page.m_sidePanel, QPoint());
-        const QPoint viewportHeaderPosition = target->card()->mapTo(page.m_sideScroll->viewport(), QPoint());
-
-        auto *animation = target->findChild<QVariantAnimation *>(QStringLiteral("expandSettingCardAnimation"));
-        QVERIFY(animation);
-        QVERIFY(!target->isExpanded());
-        target->setExpanded(true);
-        QCOMPARE(animation->state(), QAbstractAnimation::Running);
-        animation->pause();
-
-        // Inspect each size change before queued layout events can repair a
-        // compressed scroll panel and conceal a transient overlapping frame.
-        for (const int time : {16, 32, 48, 80, 128, 176, 200}) {
-            animation->setCurrentTime(qMin(time, animation->duration()));
-            QCOMPARE(scrollBar->value(), scrollOffset);
-            for (int index = 0; index < targetIndex; ++index) {
-                QCOMPARE(cards.at(index)->pos(), previousCardPositions.at(index));
-            }
-            QCOMPARE(target->card()->mapTo(page.m_sidePanel, QPoint()), headerPosition);
-            QCOMPARE(target->card()->mapTo(page.m_sideScroll->viewport(), QPoint()), viewportHeaderPosition);
-            for (int index = 0; index + 1 < cards.size(); ++index) {
-                const auto *upper = cards.at(index);
-                const auto *lower = cards.at(index + 1);
-                QVERIFY(lower->y() >= upper->y() + upper->height() + sideLayout->spacing());
-            }
-            QVERIFY(page.m_sidePanel->rect().contains(cards.last()->geometry()));
+        const QStringList keys = {QStringLiteral("receive"),  QStringLiteral("protocol"), QStringLiteral("send"),
+                                  QStringLiteral("modbus"),   QStringLiteral("packets"),  QStringLiteral("macros"),
+                                  QStringLiteral("scripts"),  QStringLiteral("autoReply"), QStringLiteral("fileSend"),
+                                  QStringLiteral("rttMemory")};
+        for (const QString &other : keys) {
+            QWidget *page_widget = toolbox->toolPage(other);
+            QVERIFY(page_widget);
+            QCOMPARE(page_widget->isHidden(), other != toolKey);
         }
     }
-
     void newPlotRequiresExplicitProtocolSelection()
     {
         AppPlot::ParserConfig previous;

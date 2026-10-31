@@ -3401,6 +3401,22 @@ Installation log: %2</translation>
         <source>字符</source>
         <translation>Character</translation>
     </message>
+    <message>
+        <source>工具箱</source>
+        <translation>Toolbox</translation>
+    </message>
+    <message>
+        <source>RTT 内存</source>
+        <translation>RTT Memory</translation>
+    </message>
+    <message>
+        <source>RTT 内存读写</source>
+        <translation>RTT memory read/write</translation>
+    </message>
+    <message>
+        <source>工具箱：协议模板、Modbus、常用包、宏命令、脚本、自动应答、文件发送</source>
+        <translation>Toolbox: protocol templates, Modbus, packets, macros, scripts, auto reply, file sending</translation>
+    </message>
 </context>
 <context>
     <name>FluentQt::RealtimePlotWidget</name>
