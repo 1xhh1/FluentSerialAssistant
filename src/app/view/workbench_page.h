@@ -408,7 +408,13 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     // reloads the other sessions so none of them writes back a stale copy.
     void publishSharedList(SharedList list) const;
     void reloadSharedList(SharedList list);
-    void exportRecords(ExportFormat format);
+    void promptExportRecords();
+    bool writeRecordsToFile(const QString &path, ExportFormat format);
+    ExportFormat exportFormatForFilter(const QString &selected, const QString &txtFilter, const QString &csvFilter,
+                                       const QString &binFilter);
+    QString withExportSuffix(const QString &path, ExportFormat format);
+    ExportFormat receiveCaptureFormat() const;
+    void writeReceiveCaptureRecord(const SessionRecord &record);
     void updateReceiveCapture(bool enabled);
     void ensureReceiveCaptureOpen();
     void updateReceiveCaptureLabel();
@@ -631,10 +637,8 @@ class WorkbenchPage : public AppPage, public AppControl::SessionControl
     FluentQt::ToolButton *m_autoReplyUpButton = nullptr;
     FluentQt::ToolButton *m_autoReplyDownButton = nullptr;
     FluentQt::PushButton *m_clearButton = nullptr;
+    FluentQt::PushButton *m_exportRecordsButton = nullptr;
     FluentQt::PushButton *m_resetCountersButton = nullptr;
-    FluentQt::PushButton *m_exportTxtButton = nullptr;
-    FluentQt::PushButton *m_exportCsvButton = nullptr;
-    FluentQt::PushButton *m_exportBinButton = nullptr;
     FluentQt::PushButton *m_protocolSaveButton = nullptr;
     FluentQt::PushButton *m_protocolDeleteButton = nullptr;
     FluentQt::PushButton *m_protocolExampleButton = nullptr;

@@ -3761,6 +3761,38 @@ Installation log: %2</translation>
         <source>勾选时选择保存文件；收到的原始字节会持续写入该文件</source>
         <translation>Picking this opens a file dialog; the raw received bytes are appended to that file</translation>
     </message>
+    <message>
+        <source>勾选后在弹窗里选文件与类型，连接后持续写入。</source>
+        <translation>Picking this opens a dialog for the file and its type; the stream is appended after connecting.</translation>
+    </message>
+    <message>
+        <source>把当前接收区记录存成文件，弹窗里选位置与类型。</source>
+        <translation>Save the current receive-area records to a file; the dialog picks the location and type.</translation>
+    </message>
+    <message>
+        <source>导出接收区…</source>
+        <translation>Export receive area…</translation>
+    </message>
+    <message>
+        <source>导出接收区</source>
+        <translation>Export the receive area</translation>
+    </message>
+    <message>
+        <source>TXT 文本 (*.txt)</source>
+        <translation>TXT text (*.txt)</translation>
+    </message>
+    <message>
+        <source>CSV 表格 (*.csv)</source>
+        <translation>CSV table (*.csv)</translation>
+    </message>
+    <message>
+        <source>BIN 原始字节 (*.bin)</source>
+        <translation>BIN raw bytes (*.bin)</translation>
+    </message>
+    <message>
+        <source>导出</source>
+        <translation>Export</translation>
+    </message>
 </context>
 <context>
     <name>FluentQt::RealtimePlotWidget</name>

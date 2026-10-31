@@ -447,6 +447,40 @@ class WorkbenchReliabilityTest : public QObject
         QCOMPARE(capture.readAll(), QByteArrayLiteral("captured"));
     }
 
+    // The save dialog also picks the type, so the stored format drives the file.
+    void receiveCaptureHonoursTheChosenFormat()
+    {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        const QString chosen = QDir(folder.path()).filePath(QStringLiteral("chosen_capture.csv"));
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/saveToFile"), true);
+        settings.setValue(QStringLiteral("receive/saveFile"), chosen);
+        settings.setValue(QStringLiteral("receive/saveFormat"), QStringLiteral("csv"));
+        settings.sync();
+
+        WorkbenchPage page(nullptr, true, false);
+        QVERIFY(page.m_saveReceiveCheck->isChecked());
+        QVERIFY(!QFileInfo::exists(chosen));
+
+        SerialController device;
+        connectVirtualPort(page, VirtualSerialPair::portBName());
+        SerialPortConfig config;
+        config.portName = VirtualSerialPair::portAName();
+        QVERIFY(device.openPort(config));
+        QVERIFY(device.writeData(QByteArrayLiteral("captured")));
+        QTRY_COMPARE(page.controlStatus().receivedBytes, 8);
+        page.m_connectButton->click();
+        QVERIFY(!page.m_link.isOpen());
+
+        QFile capture(chosen);
+        QVERIFY(capture.open(QIODevice::ReadOnly));
+        const QByteArray content = capture.readAll();
+        QVERIFY(content.startsWith(QByteArray("\xEF\xBB\xBFtimestamp,direction,source,length,hex,text")));
+        QVERIFY(content.contains(QByteArrayLiteral("63 61 70 74 75 72 65 64")));  // hex column, space separated
+        QVERIFY(content.contains(QByteArrayLiteral("captured")));
+    }
+
     void fileSendWaitsForThePortToTakeEachChunk()
     {
 #ifdef Q_OS_UNIX

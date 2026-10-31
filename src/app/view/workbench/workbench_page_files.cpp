@@ -4,7 +4,16 @@
 using namespace FluentQt;
 using namespace WorkbenchPagePrivate;
 
-void WorkbenchPage::exportRecords(ExportFormat format)
+namespace {
+
+QByteArray csvLogHeader()
+{
+    return QByteArray("\xEF\xBB\xBFtimestamp,direction,source,length,hex,text\n");
+}
+
+} // namespace
+
+void WorkbenchPage::promptExportRecords()
 {
     if (m_records.isEmpty()) {
         showWarning(AppI18n::text("没有可导出的记录"), AppI18n::text("当前会话还没有收发数据"));
@@ -12,61 +21,75 @@ void WorkbenchPage::exportRecords(ExportFormat format)
     }
 
     AppSettings settings;
-    const QString initialFolder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
-    FolderPickerDialog dialog(initialFolder, window());
-    if (dialog.exec() != QDialog::Accepted) {
+    const QString folder = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString txtFilter = AppI18n::text("TXT 文本 (*.txt)");
+    const QString csvFilter = AppI18n::text("CSV 表格 (*.csv)");
+    const QString binFilter = AppI18n::text("BIN 原始字节 (*.bin)");
+    QString selectedFilter = txtFilter;
+    QString path = QFileDialog::getSaveFileName(
+        window(), AppI18n::text("导出接收区"),
+        QDir(folder).filePath(QStringLiteral("serial_session_%1.txt").arg(stamp)),
+        txtFilter + QStringLiteral(";;") + csvFilter + QStringLiteral(";;") + binFilter, &selectedFilter);
+    if (path.isEmpty()) {
         return;
     }
 
-    const QString folder = dialog.selectedFolder();
-    if (folder.isEmpty()) {
-        return;
+    const ExportFormat format = exportFormatForFilter(selectedFilter, txtFilter, csvFilter, binFilter);
+    path = withExportSuffix(path, format);
+    settings.setValue(QStringLiteral("export/folder"), QFileInfo(path).absolutePath());
+    if (writeRecordsToFile(path, format)) {
+        showSuccess(AppI18n::text("导出完成"), path);
     }
-    settings.setValue(QStringLiteral("export/folder"), folder);
+}
 
-    const QString fileName =
-        QStringLiteral("serial_session_%1.%2")
-            .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")), exportSuffix(format));
-    const QString path = QDir(folder).filePath(fileName);
+WorkbenchPage::ExportFormat WorkbenchPage::exportFormatForFilter(const QString &selected, const QString &txtFilter,
+                                                 const QString &csvFilter, const QString &binFilter)
+{
+    if (selected == csvFilter) {
+        return ExportFormat::Csv;
+    }
+    if (selected == binFilter) {
+        return ExportFormat::Bin;
+    }
+    if (selected == txtFilter) {
+        return ExportFormat::Txt;
+    }
+    return ExportFormat::Txt;
+}
+
+QString WorkbenchPage::withExportSuffix(const QString &path, ExportFormat format)
+{
+    const QFileInfo info(path);
+    const QString suffix = exportSuffix(format);
+    if (info.suffix().compare(suffix, Qt::CaseInsensitive) == 0) {
+        return path;
+    }
+    const QString base = info.completeBaseName().isEmpty() ? info.fileName() : info.completeBaseName();
+    return QDir(info.absolutePath()).filePath(base + QLatin1Char('.') + suffix);
+}
+
+bool WorkbenchPage::writeRecordsToFile(const QString &path, ExportFormat format)
+{
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         showError(AppI18n::text("导出失败"), file.errorString());
-        return;
+        return false;
     }
-
-    if (format == ExportFormat::Bin) {
-        for (const SessionRecord &record : m_records) {
-            if (record.direction == RecordDirection::FrameBreak) {
-                continue;
-            }
-            file.write(record.bytes);
-        }
-    } else if (format == ExportFormat::Csv) {
-        QByteArray output("\xEF\xBB\xBF", 3);
-        output.append("timestamp,direction,source,length,hex,text\n");
-        for (const SessionRecord &record : m_records) {
-            if (record.direction == RecordDirection::FrameBreak) {
-                continue;
-            }
-            const QString line = QStringLiteral("%1,%2,%3,%4,%5,%6\n")
-                                     .arg(csvEscape(record.timestamp.toString(Qt::ISODateWithMs)),
-                                          csvEscape(directionText(record.direction)), csvEscape(record.sourceLabel))
-                                     .arg(record.bytes.size())
-                                     .arg(csvEscape(bytesToHex(record.bytes)), csvEscape(record.displayText));
-            output.append(line.toUtf8());
-        }
-        file.write(output);
-    } else {
-        QStringList lines;
-        lines.reserve(m_records.size());
-        for (const SessionRecord &record : m_records) {
-            lines.append(formatRecordLine(record));
-        }
-        file.write(lines.join(QLatin1Char('\n')).toUtf8());
+    if (format == ExportFormat::Csv) {
+        file.write(csvLogHeader());
     }
-
+    for (const SessionRecord &record : m_records) {
+        if (record.direction == RecordDirection::FrameBreak) {
+            continue;
+        }
+        const QByteArray chunk = serializeLogRecord(record, format);
+        if (!chunk.isEmpty()) {
+            file.write(chunk);
+        }
+    }
     file.close();
-    showSuccess(AppI18n::text("导出完成"), path);
+    return true;
 }
 
 QString WorkbenchPage::autoLogFormatKey() const
@@ -209,7 +232,7 @@ bool WorkbenchPage::ensureAutoLogFile(ExportFormat format, qint64 nextBytes)
 
     m_autoLogCurrentSize = 0;
     if (format == ExportFormat::Csv) {
-        const QByteArray header("\xEF\xBB\xBFtimestamp,direction,source,length,hex,text\n");
+        const QByteArray header = csvLogHeader();
         m_autoLogFile.write(header);
         m_autoLogCurrentSize += header.size();
     }
@@ -291,13 +314,25 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
         return;
     }
 
-    // The destination is chosen in a dialog, not in the sidebar.
+    // The dialog picks both the destination and the save type, so the sidebar
+    // does not need one button per format.
     const QString folderPath = settings.value(QStringLiteral("export/folder"), defaultExportFolder()).toString();
-    const QString suggestedName = QStringLiteral("serial_rx_%1.bin")
-                                      .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss")));
-    const QString suggested = QDir(folderPath).filePath(suggestedName);
-    const QString path = QFileDialog::getSaveFileName(window(), AppI18n::text("选择接收保存文件"), suggested,
-                                                     AppI18n::text("BIN 文件 (*.bin);;所有文件 (*)"));
+    const QString stamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString txtFilter = AppI18n::text("TXT 文本 (*.txt)");
+    const QString csvFilter = AppI18n::text("CSV 表格 (*.csv)");
+    const QString binFilter = AppI18n::text("BIN 原始字节 (*.bin)");
+    const QString currentFormat = settings.value(QStringLiteral("receive/saveFormat"), QStringLiteral("bin")).toString();
+    const ExportFormat suggestedFormat = currentFormat == QStringLiteral("txt")  ? ExportFormat::Txt
+                                         : currentFormat == QStringLiteral("csv") ? ExportFormat::Csv
+                                                                                  : ExportFormat::Bin;
+    const QString suggestedFilter = suggestedFormat == ExportFormat::Txt  ? txtFilter
+                                    : suggestedFormat == ExportFormat::Csv ? csvFilter
+                                                                           : binFilter;
+    QString selectedFilter = suggestedFilter;
+    QString path = QFileDialog::getSaveFileName(
+        window(), AppI18n::text("选择接收保存文件"),
+        QDir(folderPath).filePath(QStringLiteral("serial_rx_%1.%2").arg(stamp, exportSuffix(suggestedFormat))),
+        txtFilter + QStringLiteral(";;") + csvFilter + QStringLiteral(";;") + binFilter, &selectedFilter);
     if (path.isEmpty()) {
         // Cancelled: put the switch back instead of failing halfway.
         settings.setValue(QStringLiteral("receive/saveToFile"), false);
@@ -307,6 +342,9 @@ void WorkbenchPage::updateReceiveCapture(bool enabled)
         return;
     }
 
+    const ExportFormat format = exportFormatForFilter(selectedFilter, txtFilter, csvFilter, binFilter);
+    path = withExportSuffix(path, format);
+    settings.setValue(QStringLiteral("receive/saveFormat"), exportSuffix(format));
     settings.setValue(QStringLiteral("receive/saveFile"), path);
     settings.setValue(QStringLiteral("export/folder"), QFileInfo(path).absolutePath());
     ensureReceiveCaptureOpen();
@@ -343,6 +381,7 @@ void WorkbenchPage::ensureReceiveCaptureOpen()
         return;
     }
 
+    const bool freshFile = !QFileInfo::exists(path) || QFileInfo(path).size() == 0;
     m_receiveCaptureFile.setFileName(path);
     if (!m_receiveCaptureFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
         const QSignalBlocker blocker(m_saveReceiveCheck);
@@ -351,8 +390,50 @@ void WorkbenchPage::ensureReceiveCaptureOpen()
         showError(AppI18n::text("接收保存失败"), m_receiveCaptureFile.errorString());
         return;
     }
+    if (freshFile && receiveCaptureFormat() == ExportFormat::Csv) {
+        m_receiveCaptureFile.write(csvLogHeader());
+        m_receiveCaptureFile.flush();
+    }
 
     updateReceiveCaptureLabel();
+}
+
+WorkbenchPage::ExportFormat WorkbenchPage::receiveCaptureFormat() const
+{
+    AppSettings settings;
+    const QString format = settings.value(QStringLiteral("receive/saveFormat"), QStringLiteral("bin")).toString();
+    if (format == QStringLiteral("csv")) {
+        return ExportFormat::Csv;
+    }
+    if (format == QStringLiteral("txt")) {
+        return ExportFormat::Txt;
+    }
+    return ExportFormat::Bin;
+}
+
+void WorkbenchPage::writeReceiveCaptureRecord(const SessionRecord &record)
+{
+    if (record.direction != RecordDirection::Rx || !m_receiveCaptureFile.isOpen()) {
+        return;
+    }
+    const ExportFormat format = receiveCaptureFormat();
+    const QByteArray output = serializeLogRecord(record, format);
+    if (output.isEmpty() && format != ExportFormat::Bin) {
+        return;
+    }
+    if (m_receiveCaptureFile.write(output) != output.size()) {
+        const QString error = m_receiveCaptureFile.errorString();
+        closeReceiveCapture();
+        const QSignalBlocker blocker(m_saveReceiveCheck);
+        if (m_saveReceiveCheck) {
+            m_saveReceiveCheck->setChecked(false);
+        }
+        AppSettings settings;
+        settings.setValue(QStringLiteral("receive/saveToFile"), false);
+        showError(AppI18n::text("接收保存失败"), error.isEmpty() ? AppI18n::text("写入不完整") : error);
+        return;
+    }
+    m_receiveCaptureFile.flush();
 }
 
 void WorkbenchPage::closeReceiveCapture()

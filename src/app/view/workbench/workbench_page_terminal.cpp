@@ -421,15 +421,6 @@ void WorkbenchPage::recordReceivedBytes(const QByteArray &data)
     }
 
     m_rxCount += data.size();
-    if (m_saveReceiveCheck && m_saveReceiveCheck->isChecked()) {
-        if (!m_receiveCaptureFile.isOpen()) {
-            ensureReceiveCaptureOpen();
-        }
-        if (m_receiveCaptureFile.isOpen()) {
-            m_receiveCaptureFile.write(data);
-            m_receiveCaptureFile.flush();
-        }
-    }
     m_countersDirty = true;
 }
 
@@ -576,6 +567,7 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
     m_records.append(record);
     m_pendingRecordIndexes.append(m_firstRecordIndex + m_records.size() - 1);
     writeAutoLogRecord(record);
+    writeReceiveCaptureRecord(record);
     appendQuickPlotRecord(record);
     if (direction == RecordDirection::Rx) {
         updateModbusResponseStatus(data);
@@ -584,15 +576,6 @@ void WorkbenchPage::appendRecord(RecordDirection direction, const QByteArray &da
     if (direction == RecordDirection::Rx && updateStats) {
         m_lastRxTimestamp = now;
         m_rxCount += data.size();
-        if (m_saveReceiveCheck && m_saveReceiveCheck->isChecked()) {
-            if (!m_receiveCaptureFile.isOpen()) {
-                ensureReceiveCaptureOpen();
-            }
-            if (m_receiveCaptureFile.isOpen()) {
-                m_receiveCaptureFile.write(data);
-                m_receiveCaptureFile.flush();
-            }
-        }
     } else if (direction == RecordDirection::Tx && updateStats) {
         m_txCount += data.size();
     }

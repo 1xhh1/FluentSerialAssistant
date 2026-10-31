@@ -289,9 +289,9 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     m_timestampFormatCombo->setEnabled(false);
     addFormRow(root, AppI18n::text("时间戳格式"), m_timestampFormatCombo);
 
-    // Saving: capture the raw stream to a file, or export the receive area.
-    addGroupHeading(root, AppI18n::text("保存与导出"),
-                    AppI18n::text("把收到的原始字节持续写入文件，或把接收区记录导出为 TXT / CSV / BIN。"));
+    // Saving: the dialog picks the file and its type, so no format buttons here.
+    addGroupHeading(root, AppI18n::text("保存"),
+                    AppI18n::text("勾选后在弹窗里选文件与类型，连接后持续写入。"));
 
     auto *saveReceiveRow = new QWidget(section);
     auto *saveReceiveLayout = new QHBoxLayout(saveReceiveRow);
@@ -311,22 +311,7 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     m_receiveCaptureLabel->setWordWrap(true);
     root->addWidget(m_receiveCaptureLabel);
 
-    auto *exportRow = new QHBoxLayout;
-    exportRow->setSpacing(8);
-    m_exportTxtButton = new PushButton(icon(FluentIcon::Document), QStringLiteral("TXT"), section);
-    m_exportCsvButton = new PushButton(icon(FluentIcon::SaveAs), QStringLiteral("CSV"), section);
-    m_exportBinButton = new PushButton(icon(FluentIcon::Save), QStringLiteral("BIN"), section);
-    AppUi::setFluentToolTip(m_exportTxtButton, AppI18n::text("把接收区记录导出为 TXT 文本"));
-    AppUi::setFluentToolTip(m_exportCsvButton, AppI18n::text("把接收区记录导出为 CSV（时间/方向/数据列）"));
-    AppUi::setFluentToolTip(m_exportBinButton, AppI18n::text("把接收区原始字节导出为 BIN"));
-    setButtonRowControlPolicy(m_exportTxtButton);
-    setButtonRowControlPolicy(m_exportCsvButton);
-    setButtonRowControlPolicy(m_exportBinButton);
-    exportRow->addWidget(m_exportTxtButton);
-    exportRow->addWidget(m_exportCsvButton);
-    exportRow->addWidget(m_exportBinButton);
-    root->addLayout(exportRow);
-
+    addGroupHeading(root, AppI18n::text("清空"));
     auto *counterRow = new QHBoxLayout;
     counterRow->setSpacing(8);
     m_resetCountersButton = new PushButton(icon(FluentIcon::Cancel), AppI18n::text("计数清零"), section);
@@ -370,9 +355,6 @@ QWidget *WorkbenchPage::createQuickReceiveSection()
     connect(m_saveReceiveCheck, &CheckBox::toggled, this, &WorkbenchPage::updateReceiveCapture);
     connect(m_resetCountersButton, &PushButton::clicked, this, &WorkbenchPage::resetCounters);
     connect(m_clearButton, &PushButton::clicked, this, &WorkbenchPage::clearTerminal);
-    connect(m_exportTxtButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Txt); });
-    connect(m_exportCsvButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Csv); });
-    connect(m_exportBinButton, &PushButton::clicked, this, [this]() { exportRecords(ExportFormat::Bin); });
 
     makeCollapsibleCard(section, QStringLiteral("quickReceive"), true);
     return section;
@@ -450,6 +432,14 @@ QWidget *WorkbenchPage::createReceiveSettingsSection()
         }
         updateAutoLogStatus();
     });
+
+    addGroupHeading(root, AppI18n::text("导出"),
+                    AppI18n::text("把当前接收区记录存成文件，弹窗里选位置与类型。"));
+    m_exportRecordsButton = new PushButton(icon(FluentIcon::SaveAs), AppI18n::text("导出接收区…"), section);
+    m_exportRecordsButton->setObjectName(QStringLiteral("exportRecordsButton"));
+    setButtonRowControlPolicy(m_exportRecordsButton);
+    root->addWidget(m_exportRecordsButton);
+    connect(m_exportRecordsButton, &PushButton::clicked, this, &WorkbenchPage::promptExportRecords);
 
     connect(m_displayModeSegment, &SegmentedWidget::currentItemChanged, this, [this](const QString &routeKey) {
         AppSettings settings;
