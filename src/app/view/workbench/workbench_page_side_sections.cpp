@@ -770,13 +770,11 @@ QWidget *WorkbenchPage::createDebuggerSection()
     // settings entry because installs drift (JLink_V810, SEGGER folders...).
     m_debuggerDeviceEdit = new LineEdit(section);
     m_debuggerDeviceEdit->setObjectName(QStringLiteral("debuggerDeviceEdit"));
-    m_debuggerDeviceEdit->setPlaceholderText(QStringLiteral("STM32G431RB / Cortex-M4"));
+    m_debuggerDeviceEdit->setPlaceholderText(QStringLiteral("S32K144 / STM32G431RB / Cortex-M4"));
     {
         AppSettings settings;
         const QString savedDevice = settings.value(QStringLiteral("debugger/device")).toString();
-        if (!savedDevice.isEmpty()) {
-            m_debuggerDeviceEdit->setText(savedDevice);
-        }
+        m_debuggerDeviceEdit->setText(savedDevice.isEmpty() ? QStringLiteral("S32K144") : savedDevice);
     }
     addFormRow(root, AppI18n::text("目标设备"), m_debuggerDeviceEdit);
 

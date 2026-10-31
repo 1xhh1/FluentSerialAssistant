@@ -1,0 +1,249 @@
+  [1;32mI: run app
+[0m  [1;32mI: (app)flash init T(0)/F(!0) 0
+[0m  [1;32mI: (app)SetFlexRamFunction T(0)/F(!0) 0
+[0m  [1;32mI: Dfalsh addr: 0x10000000 size:0x0 EEPROM addr:0x14000000 size:0x1000
+[0m  [1;32mI: end wdog 1
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m  [1;32mI: run app
+[0m  Session:0x1 Security:0x1
+[0m  CAN RX:0 Disp:0 TXatt:0 TXok:0 TEC:0 REC:0 PeakTEC:0 PeakREC:0 FifoFail:0
+[0m

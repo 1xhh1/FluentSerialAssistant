@@ -236,10 +236,11 @@ bool JLinkCommander::rttLoggerStart(const QString &exePath, const QString &devic
                        .arg(QDateTime::currentMSecsSinceEpoch());
     m_rttLoggerProcess = new QProcess(this);
     m_rttLoggerProcess->setProgram(exePath);
+    // The log file must be the last positional argument; -NoGui would swallow
+    // it (verified with V7.80: RTTLogger treated "-NoGui" as the file name).
     m_rttLoggerProcess->setArguments({QStringLiteral("-Device"), device, QStringLiteral("-If"), QStringLiteral("SWD"),
                                       QStringLiteral("-Speed"), QString::number(speedKhz > 0 ? speedKhz : 4000),
-                                      QStringLiteral("-RTTChannel"), QString::number(channel),
-                                      QStringLiteral("-NoGui"), QStringLiteral("1"), m_rttLogFile});
+                                      QStringLiteral("-RTTChannel"), QString::number(channel), m_rttLogFile});
     m_rttLoggerProcess->start();
     if (!m_rttLoggerProcess->waitForStarted(5000)) {
         if (error) {
