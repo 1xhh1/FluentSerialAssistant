@@ -1,3 +1,4 @@
 [submodule "third_party/FluentQtWidgets"]
 	path = third_party/FluentQtWidgets
-	url = https://github.com/txp666/FluentQtWidgets.git
+	url = https://github.com/1xhh1/xhh_serial.git
+	branch = fluentqtwidgets
